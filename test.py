@@ -26,7 +26,6 @@ tensor_image = tensor_image.unsqueeze(0)
 
 print(tensor_image.size())
 output = pipe(tensor_image)
-print(output.size())
 
 # 保存するファイル名
 file_name = 'output.pkl'
