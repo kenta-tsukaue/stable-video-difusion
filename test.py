@@ -2,6 +2,7 @@ from diffusers import DiffusionPipeline
 import torch
 from PIL import Image
 from torchvision import transforms
+import pickle
 
 pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-video-diffusion-img2vid")
 pipe.enable_attention_slicing()
@@ -24,5 +25,14 @@ tensor_image = transform(image)
 tensor_image = tensor_image.unsqueeze(0)
 
 print(tensor_image.size())
-output = pipe(tensor_image).images[0]
-print(output)
+output = pipe(tensor_image)
+print(output.size())
+
+# 保存するファイル名
+file_name = 'output.pkl'
+
+# Pickleファイルとして保存
+with open(file_name, 'wb') as f:
+    pickle.dump(output, f)
+
+print(f"File saved as {file_name}")
