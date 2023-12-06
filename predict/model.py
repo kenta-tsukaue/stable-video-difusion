@@ -1,13 +1,16 @@
-import sys
 import json
+import sys
+import os
 from typing import Union
 from diffusers import AutoencoderKLTemporalDecoder, EulerDiscreteScheduler
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from safetensors import safe_open
 
-sys.path.append('../diffusers/models')
-from unet_spatio_temporal_condition import UNetSpatioTemporalConditionModel
 
+
+# プロジェクトのルートディレクトリへのパスを直接指定
+sys.path.append('C:/Users/Public/Documents/プログラミング/stable_video')
+from diffusers_lib.models.unet_spatio_temporal_condition import UNetSpatioTemporalConditionModel
 
 # model information
 model_dict = {
@@ -27,7 +30,7 @@ def getModel(key:str) -> Union[
     ]:
 
     # read config
-    config_path = "./weights/stable-video-diffusion-img2vid/" + key + "/" + model_dict[key]["config_path"]
+    config_path = "../weights/stable-video-diffusion-img2vid/" + key + "/" + model_dict[key]["config_path"]
     with open(config_path, 'r') as f:
         config = json.load(f)
     
@@ -36,7 +39,7 @@ def getModel(key:str) -> Union[
 
     # check if the model is pre trained
     if model_dict[key]["exist_safetensor_file"]:
-        safetensor_file_path = "./weights/stable-video-diffusion-img2vid/" + key + "/diffusion_pytorch_model.fp16.safetensors"
+        safetensor_file_path = "../weights/stable-video-diffusion-img2vid/" + key + "/diffusion_pytorch_model.fp16.safetensors"
         tensors = {}
 
         # read safetensors

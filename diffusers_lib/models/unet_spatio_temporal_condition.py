@@ -383,6 +383,8 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         """
         # 1. time
         timesteps = timestep
+        print("\ntimesteps", timesteps)
+        print("\ntimesteps.size", timesteps.size())
         if not torch.is_tensor(timesteps):
             # TODO: this requires sync between CPU and GPU. So try to pass timesteps as tensors if you can
             # This would be a good case for the `match` statement (Python 3.10+)
@@ -398,19 +400,27 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
         batch_size, num_frames = sample.shape[:2]
         timesteps = timesteps.expand(batch_size)
+        print("\ntimesteps", timesteps)
+        print("\ntimesteps", timesteps)
 
         t_emb = self.time_proj(timesteps)
+
 
         # `Timesteps` does not contain any weights and will always return f32 tensors
         # but time_embedding might actually be running in fp16. so we need to cast here.
         # there might be better ways to encapsulate this.
         t_emb = t_emb.to(dtype=sample.dtype)
+        print("\nt_emb.size()", t_emb.size())
 
         emb = self.time_embedding(t_emb)
+        print("\nemb.size()", emb.size())
 
+        print("added_time_ids", added_time_ids.size())
         time_embeds = self.add_time_proj(added_time_ids.flatten())
+        print("\ntime_embeds.size()", time_embeds.size())
         time_embeds = time_embeds.reshape((batch_size, -1))
         time_embeds = time_embeds.to(emb.dtype)
+        print("\ntime_embeds.size()", time_embeds.size())
         aug_emb = self.add_embedding(time_embeds)
         emb = emb + aug_emb
 
