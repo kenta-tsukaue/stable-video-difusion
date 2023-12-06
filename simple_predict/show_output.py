@@ -1,7 +1,7 @@
 import pickle
 
 # 読み込むファイル名
-file_name = 'output.pkl'
+file_name = './output.pkl'
 
 # Pickleファイルから読み込み
 with open(file_name, 'rb') as f:
