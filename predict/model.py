@@ -1,8 +1,13 @@
+import sys
 import json
 from typing import Union
-from diffusers import UNetSpatioTemporalConditionModel, AutoencoderKLTemporalDecoder, EulerDiscreteScheduler
+from diffusers import AutoencoderKLTemporalDecoder, EulerDiscreteScheduler
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from safetensors import safe_open
+
+sys.path.append('../diffusers/models')
+from unet_spatio_temporal_condition import UNetSpatioTemporalConditionModel
+
 
 # model information
 model_dict = {
