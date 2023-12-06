@@ -1,4 +1,5 @@
 #=======[import libraries]=======
+import os
 import pickle
 import sys
 from model import getModel
@@ -9,7 +10,10 @@ from torchvision import transforms
 from tqdm.auto import tqdm
 
 # プロジェクトのルートディレクトリへのパスを直接指定
-sys.path.append('C:/Users/Public/Documents/プログラミング/stable_video/')
+#sys.path.append('C:/Users/Public/Documents/プログラミング/stable_video/')
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
 from  diffusers_lib.pipelines.stable_video_diffusion.pipeline_stable_video_diffusion import StableVideoDiffusionPipeline
 
 #========[import models]========

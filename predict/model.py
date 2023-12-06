@@ -9,7 +9,11 @@ from safetensors import safe_open
 
 
 # プロジェクトのルートディレクトリへのパスを直接指定
-sys.path.append('C:/Users/Public/Documents/プログラミング/stable_video')
+#sys.path.append('C:/Users/Public/Documents/プログラミング/stable_video')
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
 from diffusers_lib.models.unet_spatio_temporal_condition import UNetSpatioTemporalConditionModel
 
 # model information
