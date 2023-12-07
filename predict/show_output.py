@@ -1,4 +1,10 @@
 import pickle
+import os
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
+import diffusers_lib
 
 # 読み込むファイル名
 file_name = './output.pkl'
