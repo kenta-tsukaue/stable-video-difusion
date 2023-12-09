@@ -1,0 +1,68 @@
+参考までに以下のようにデータは変化していきます。（サンプリングの際）
+
+latents torch.Size([1, 14, 4, 72, 128])
+latent_model_input torch.Size([2, 14, 4, 72, 128])
+latent_model_input torch.Size([2, 14, 4, 72, 128])
+latent_model_input torch.Size([2, 14, 8, 72, 128])
+sample_input torch.Size([2, 14, 8, 72, 128])
+
+timesteps tensor(1.5755)
+
+timesteps.size torch.Size([])
+
+timesteps tensor([1.5755, 1.5755])
+
+timesteps tensor([1.5755, 1.5755])
+
+t_emb.size() torch.Size([2, 320])
+
+emb.size() torch.Size([2, 1280])
+added_time_ids torch.Size([2, 3])
+
+time_embeds.size() torch.Size([6, 256])
+
+time_embeds.size() torch.Size([2, 768])
+sample_preplus_cond torch.Size([28, 320, 72, 128])
+sample_predown torch.Size([28, 320, 72, 128])
+sample_premid torch.Size([28, 1280, 9, 16])
+
+sample_aftermid torch.Size([28, 1280, 9, 16])
+
+len(down_block_res_samples) 12
+
+len(self.controlnet_down_blocks) 12
+
+down_block_res_sample.size() torch.Size([28, 320, 72, 128])
+controlnet_block Conv2d(320, 320, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 320, 72, 128])
+controlnet_block Conv2d(320, 320, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 320, 72, 128])
+controlnet_block Conv2d(320, 320, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 320, 36, 64])
+controlnet_block Conv2d(320, 320, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 640, 36, 64])
+controlnet_block Conv2d(640, 640, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 640, 36, 64])
+controlnet_block Conv2d(640, 640, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 640, 18, 32])
+controlnet_block Conv2d(640, 640, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 1280, 18, 32])
+controlnet_block Conv2d(1280, 1280, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 1280, 18, 32])
+controlnet_block Conv2d(1280, 1280, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 1280, 9, 16])
+controlnet_block Conv2d(1280, 1280, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 1280, 9, 16])
+controlnet_block Conv2d(1280, 1280, kernel_size=(1, 1), stride=(1, 1))
+
+down_block_res_sample.size() torch.Size([28, 1280, 9, 16])
