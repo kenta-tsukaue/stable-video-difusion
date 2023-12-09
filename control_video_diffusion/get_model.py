@@ -14,11 +14,11 @@ from safetensors import safe_open
 current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
-from diffusers_lib.models.unet_spatio_temporal_condition import UNetSpatioTemporalConditionModel
+from controlled_unet import ControlledUnetModel
 
 # model information
 model_dict = {
-    "unet": {"model":UNetSpatioTemporalConditionModel, "config_path": "config.json", "exist_safetensor_file":True},
+    "unet": {"model":ControlledUnetModel, "config_path": "config.json", "exist_safetensor_file":True},
     "vae": {"model":AutoencoderKLTemporalDecoder, "config_path": "config.json", "exist_safetensor_file":True},
     "feature_extractor": {"model":CLIPImageProcessor, "config_path": "preprocessor_config.json", "exist_safetensor_file":False},
     "image_encoder": {"model":CLIPVisionModelWithProjection, "config_path": "config.json", "exist_safetensor_file":True},
@@ -26,7 +26,7 @@ model_dict = {
 }
 
 def getModel(key:str) -> Union[
-        UNetSpatioTemporalConditionModel, 
+        ControlledUnetModel, 
         AutoencoderKLTemporalDecoder, 
         CLIPImageProcessor,
         EulerDiscreteScheduler,
