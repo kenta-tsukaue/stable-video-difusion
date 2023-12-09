@@ -531,6 +531,9 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
         # 5. Control net blocks
         controlnet_down_block_res_samples = ()
 
+        print("\nlen(down_block_res_samples)", len(down_block_res_samples))
+        print("\nlen(self.controlnet_down_blocks)", len(self.controlnet_down_blocks))
+
         # print
         for down_block_res_sample, controlnet_block in zip(down_block_res_samples, self.controlnet_down_blocks):
             print("\ndown_block_res_sample.size()", down_block_res_sample.size(), "\ncontrolnet_block",  controlnet_block)
