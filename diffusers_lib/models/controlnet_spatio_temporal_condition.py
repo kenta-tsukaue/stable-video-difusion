@@ -218,7 +218,7 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
             input_channel = output_channel
             output_channel = block_out_channels[i]
             is_final_block = i == len(block_out_channels) - 1
-            print("down_block_type", down_block_type)
+            #print("down_block_type", down_block_type)
             down_block = get_down_block(
                 down_block_type,
                 num_layers=layers_per_block[i],
@@ -266,7 +266,7 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
         load_weights_from_unet: bool = True,
         conditioning_channels: int = 3,
     ):
-        print(unet.config)
+        #print(unet.config)
 
         controlnet = cls(
             sample_size=unet.config.sample_size,
@@ -442,11 +442,11 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
                 a `tuple` is returned where the first element is the sample tensor.
         """
 
-        print("sample_input", sample.size())
+        #print("sample_input", sample.size())
         # 1. time
         timesteps = timestep
-        print("\ntimesteps", timesteps)
-        print("\ntimesteps.size", timesteps.size())
+        #print("\ntimesteps", timesteps)
+        #print("\ntimesteps.size", timesteps.size())
         if not torch.is_tensor(timesteps):
             # TODO: this requires sync between CPU and GPU. So try to pass timesteps as tensors if you can
             # This would be a good case for the `match` statement (Python 3.10+)
@@ -462,8 +462,8 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
         batch_size, num_frames = sample.shape[:2]
         timesteps = timesteps.expand(batch_size)
-        print("\ntimesteps", timesteps)
-        print("\ntimesteps", timesteps)
+        #print("\ntimesteps", timesteps)
+        #print("\ntimesteps", timesteps)
 
         t_emb = self.time_proj(timesteps)
 
@@ -472,17 +472,17 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
         # but time_embedding might actually be running in fp16. so we need to cast here.
         # there might be better ways to encapsulate this.
         t_emb = t_emb.to(dtype=sample.dtype)
-        print("\nt_emb.size()", t_emb.size())
+        #print("\nt_emb.size()", t_emb.size())
 
         emb = self.time_embedding(t_emb)
-        print("\nemb.size()", emb.size())
+        #print("\nemb.size()", emb.size())
 
-        print("added_time_ids", added_time_ids.size())
+        #print("added_time_ids", added_time_ids.size())
         time_embeds = self.add_time_proj(added_time_ids.flatten())
-        print("\ntime_embeds.size()", time_embeds.size())
+        #print("\ntime_embeds.size()", time_embeds.size())
         time_embeds = time_embeds.reshape((batch_size, -1))
         time_embeds = time_embeds.to(emb.dtype)
-        print("\ntime_embeds.size()", time_embeds.size())
+        #print("\ntime_embeds.size()", time_embeds.size())
         aug_emb = self.add_embedding(time_embeds)
         emb = emb + aug_emb
 
@@ -497,14 +497,14 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
 
         # 2. pre-process
         sample = self.conv_in(sample)
-        print("sample_preplus_cond", sample.size())
+        #print("sample_preplus_cond", sample.size())
         controlnet_cond = self.controlnet_cond_embedding(controlnet_cond)
         sample = sample + controlnet_cond
 
         image_only_indicator = torch.zeros(batch_size, num_frames, dtype=sample.dtype, device=sample.device)
 
         down_block_res_samples = (sample,)
-        print("sample_predown", sample.size())
+        #print("sample_predown", sample.size())
         for downsample_block in self.down_blocks:
             if hasattr(downsample_block, "has_cross_attention") and downsample_block.has_cross_attention:
                 sample, res_samples = downsample_block(
@@ -521,7 +521,7 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
                 )
 
             down_block_res_samples += res_samples
-        print("sample_premid", sample.size())
+        #print("sample_premid", sample.size())
         # 4. mid
         sample = self.mid_block(
             hidden_states=sample,
@@ -529,17 +529,17 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
             encoder_hidden_states=encoder_hidden_states,
             image_only_indicator=image_only_indicator,
         )
-        print("\nsample_aftermid", sample.size())
+        #print("\nsample_aftermid", sample.size())
 
         # 5. Control net blocks
         controlnet_down_block_res_samples = ()
 
-        print("\nlen(down_block_res_samples)", len(down_block_res_samples))
-        print("\nlen(self.controlnet_down_blocks)", len(self.controlnet_down_blocks))
+        #print("\nlen(down_block_res_samples)", len(down_block_res_samples))
+        #print("\nlen(self.controlnet_down_blocks)", len(self.controlnet_down_blocks))
 
         # print
-        for down_block_res_sample, controlnet_block in zip(down_block_res_samples, self.controlnet_down_blocks):
-            print("\ndown_block_res_sample.size()", down_block_res_sample.size(), "\ncontrolnet_block",  controlnet_block)
+        """for down_block_res_sample, controlnet_block in zip(down_block_res_samples, self.controlnet_down_blocks):
+            print("\ndown_block_res_sample.size()", down_block_res_sample.size(), "\ncontrolnet_block",  controlnet_block)"""
             
 
         for down_block_res_sample, controlnet_block in zip(down_block_res_samples, self.controlnet_down_blocks):
