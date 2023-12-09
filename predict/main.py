@@ -2,7 +2,7 @@
 import os
 import pickle
 import sys
-from model import getModel
+from get_model import getModel
 from diffusers import EulerDiscreteScheduler
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from PIL import Image

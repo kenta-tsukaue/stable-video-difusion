@@ -572,11 +572,15 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
+                print("latents", latents.size())
                 latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
+                print("latent_model_input", latent_model_input.size())
                 latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+                print("latent_model_input", latent_model_input.size())
 
                 # Concatenate image_latents over channels dimention
                 latent_model_input = torch.cat([latent_model_input, image_latents], dim=2)
+                print("latent_model_input", latent_model_input.size())
 
                 control_model_input = latent_model_input
                 controlnet_prompt_embeds = image_embeddings

@@ -438,6 +438,8 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
                 If `return_dict` is True, an [`~models.unet_slatio_temporal.UNetSpatioTemporalConditionOutput`] is returned, otherwise
                 a `tuple` is returned where the first element is the sample tensor.
         """
+
+        print("sample_input", sample.size())
         # 1. time
         timesteps = timestep
         print("\ntimesteps", timesteps)
@@ -492,12 +494,14 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
 
         # 2. pre-process
         sample = self.conv_in(sample)
+        print("sample_preplus_cond", sample.size())
         controlnet_cond = self.controlnet_cond_embedding(controlnet_cond)
         sample = sample + controlnet_cond
 
         image_only_indicator = torch.zeros(batch_size, num_frames, dtype=sample.dtype, device=sample.device)
 
         down_block_res_samples = (sample,)
+        print("sample_predown", sample.size())
         for downsample_block in self.down_blocks:
             if hasattr(downsample_block, "has_cross_attention") and downsample_block.has_cross_attention:
                 sample, res_samples = downsample_block(
@@ -514,7 +518,7 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
                 )
 
             down_block_res_samples += res_samples
-
+        print("sample_premid", sample.size())
         # 4. mid
         sample = self.mid_block(
             hidden_states=sample,
