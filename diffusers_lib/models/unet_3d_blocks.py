@@ -2225,7 +2225,7 @@ class UpBlockSpatioTemporal(nn.Module):
 
         self.gradient_checkpointing = False
         self.resolution_idx = resolution_idx
-
+        
     def forward(
         self,
         hidden_states: torch.FloatTensor,

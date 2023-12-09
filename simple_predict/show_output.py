@@ -1,5 +1,6 @@
 import pickle
 
+
 # 読み込むファイル名
 file_name = './output.pkl'
 

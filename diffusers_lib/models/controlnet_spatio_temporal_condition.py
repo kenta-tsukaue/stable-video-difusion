@@ -3,6 +3,7 @@ from typing import Dict, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 
 from ..configuration_utils import ConfigMixin, register_to_config
 from ..loaders import UNet2DConditionLoadersMixin
@@ -11,25 +12,77 @@ from .attention_processor import CROSS_ATTENTION_PROCESSORS, AttentionProcessor,
 from .embeddings import TimestepEmbedding, Timesteps
 from .modeling_utils import ModelMixin
 from .unet_3d_blocks import UNetMidBlockSpatioTemporal, get_down_block, get_up_block
-
+from .unet_spatio_temporal_condition import UNetSpatioTemporalConditionModel
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 
 @dataclass
-class UNetSpatioTemporalConditionOutput(BaseOutput):
+class ControlNetOutput(BaseOutput):
     """
-    The output of [`UNetSpatioTemporalConditionModel`].
+    The output of [`ControlNetModel`].
 
     Args:
-        sample (`torch.FloatTensor` of shape `(batch_size, num_frames, num_channels, height, width)`):
-            The hidden states output conditioned on `encoder_hidden_states` input. Output of last layer of model.
+        down_block_res_samples (`tuple[torch.Tensor]`):
+            A tuple of downsample activations at different resolutions for each downsampling block. Each tensor should
+            be of shape `(batch_size, channel * resolution, height //resolution, width // resolution)`. Output can be
+            used to condition the original UNet's downsampling activations.
+        mid_down_block_re_sample (`torch.Tensor`):
+            The activation of the midde block (the lowest sample resolution). Each tensor should be of shape
+            `(batch_size, channel * lowest_resolution, height // lowest_resolution, width // lowest_resolution)`.
+            Output can be used to condition the original UNet's middle block activation.
     """
 
-    sample: torch.FloatTensor = None
+    down_block_res_samples: Tuple[torch.Tensor]
+    mid_block_res_sample: torch.Tensor
+
+#修正必須
+class ControlNetConditioningEmbedding(nn.Module):
+    """
+    Quoting from https://arxiv.org/abs/2302.05543: "Stable Diffusion uses a pre-processing method similar to VQ-GAN
+    [11] to convert the entire dataset of 512 × 512 images into smaller 64 × 64 “latent images” for stabilized
+    training. This requires ControlNets to convert image-based conditions to 64 × 64 feature space to match the
+    convolution size. We use a tiny network E(·) of four convolution layers with 4 × 4 kernels and 2 × 2 strides
+    (activated by ReLU, channels are 16, 32, 64, 128, initialized with Gaussian weights, trained jointly with the full
+    model) to encode image-space conditions ... into feature maps ..."
+    """
+
+    def __init__(
+        self,
+        conditioning_embedding_channels: int,
+        conditioning_channels: int = 3,
+        block_out_channels: Tuple[int, ...] = (16, 32, 96, 256),
+    ):
+        super().__init__()
+
+        self.conv_in = nn.Conv2d(conditioning_channels, block_out_channels[0], kernel_size=3, padding=1)
+
+        self.blocks = nn.ModuleList([])
+
+        for i in range(len(block_out_channels) - 1):
+            channel_in = block_out_channels[i]
+            channel_out = block_out_channels[i + 1]
+            self.blocks.append(nn.Conv2d(channel_in, channel_in, kernel_size=3, padding=1))
+            self.blocks.append(nn.Conv2d(channel_in, channel_out, kernel_size=3, padding=1, stride=2))
+
+        self.conv_out = zero_module(
+            nn.Conv2d(block_out_channels[-1], conditioning_embedding_channels, kernel_size=3, padding=1)
+        )
+
+    def forward(self, conditioning):
+        embedding = self.conv_in(conditioning)
+        embedding = F.silu(embedding)
+
+        for block in self.blocks:
+            embedding = block(embedding)
+            embedding = F.silu(embedding)
+
+        embedding = self.conv_out(embedding)
+
+        return embedding
 
 
-class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionLoadersMixin):
+class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionLoadersMixin):
     """
     A conditional Spatio-Temporal UNet model that takes a noisy video frames, conditional state, and a timestep and returns a sample
     shaped output.
@@ -71,18 +124,12 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         self,
         sample_size: Optional[int] = None,
         in_channels: int = 8,
-        out_channels: int = 4,
+        conditioning_channels: int = 3,
         down_block_types: Tuple[str] = (
             "CrossAttnDownBlockSpatioTemporal",
             "CrossAttnDownBlockSpatioTemporal",
             "CrossAttnDownBlockSpatioTemporal",
             "DownBlockSpatioTemporal",
-        ),
-        up_block_types: Tuple[str] = (
-            "UpBlockSpatioTemporal",
-            "CrossAttnUpBlockSpatioTemporal",
-            "CrossAttnUpBlockSpatioTemporal",
-            "CrossAttnUpBlockSpatioTemporal",
         ),
         block_out_channels: Tuple[int] = (320, 640, 1280, 1280),
         addition_time_embed_dim: int = 256,
@@ -91,6 +138,7 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         cross_attention_dim: Union[int, Tuple[int]] = 1024,
         transformer_layers_per_block: Union[int, Tuple[int], Tuple[Tuple]] = 1,
         num_attention_heads: Union[int, Tuple[int]] = (5, 10, 10, 20),
+        conditioning_embedding_out_channels: Optional[Tuple[int, ...]] = (16, 32, 96, 256),
         num_frames: int = 25,
     ):
         super().__init__()
@@ -98,11 +146,6 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         self.sample_size = sample_size
 
         # Check inputs
-        if len(down_block_types) != len(up_block_types):
-            raise ValueError(
-                f"Must provide the same number of `down_block_types` as `up_block_types`. `down_block_types`: {down_block_types}. `up_block_types`: {up_block_types}."
-            )
-
         if len(block_out_channels) != len(down_block_types):
             raise ValueError(
                 f"Must provide the same number of `block_out_channels` as `down_block_types`. `block_out_channels`: {block_out_channels}. `down_block_types`: {down_block_types}."
@@ -142,8 +185,15 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         self.add_time_proj = Timesteps(addition_time_embed_dim, True, downscale_freq_shift=0)
         self.add_embedding = TimestepEmbedding(projection_class_embeddings_input_dim, time_embed_dim)
 
+        # control net conditioning embedding
+        self.controlnet_cond_embedding = ControlNetConditioningEmbedding(
+            conditioning_embedding_channels=block_out_channels[0],
+            block_out_channels=conditioning_embedding_out_channels,
+            conditioning_channels=conditioning_channels,
+        )
+
         self.down_blocks = nn.ModuleList([])
-        self.up_blocks = nn.ModuleList([])
+        self.controlnet_down_blocks = nn.ModuleList([])
 
         if isinstance(num_attention_heads, int):
             num_attention_heads = (num_attention_heads,) * len(down_block_types)
@@ -181,7 +231,22 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
             )
             self.down_blocks.append(down_block)
 
+            for _ in range(layers_per_block[0]):
+                controlnet_block = nn.Conv2d(output_channel, output_channel, kernel_size=1)
+                controlnet_block = zero_module(controlnet_block)
+                self.controlnet_down_blocks.append(controlnet_block)
+
+            if not is_final_block:
+                controlnet_block = nn.Conv2d(output_channel, output_channel, kernel_size=1)
+                controlnet_block = zero_module(controlnet_block)
+                self.controlnet_down_blocks.append(controlnet_block)
+
         # mid
+        mid_block_channel = block_out_channels[-1]
+        controlnet_block = nn.Conv2d(mid_block_channel, mid_block_channel, kernel_size=1)
+        controlnet_block = zero_module(controlnet_block)
+        self.controlnet_mid_block = controlnet_block
+        
         self.mid_block = UNetMidBlockSpatioTemporal(
             block_out_channels[-1],
             temb_channels=blocks_time_embed_dim,
@@ -189,61 +254,42 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
             cross_attention_dim=cross_attention_dim[-1],
             num_attention_heads=num_attention_heads[-1],
         )
+    
+    @classmethod
+    def from_unet(
+        cls,
+        unet: UNetSpatioTemporalConditionModel,
+        conditioning_embedding_out_channels: Optional[Tuple[int, ...]] = (16, 32, 96, 256),
+        load_weights_from_unet: bool = True,
+        conditioning_channels: int = 3,
+    ):
+        print(unet.config)
 
-        # count how many layers upsample the images
-        self.num_upsamplers = 0
-
-        # up
-        reversed_block_out_channels = list(reversed(block_out_channels))
-        reversed_num_attention_heads = list(reversed(num_attention_heads))
-        reversed_layers_per_block = list(reversed(layers_per_block))
-        reversed_cross_attention_dim = list(reversed(cross_attention_dim))
-        reversed_transformer_layers_per_block = list(reversed(transformer_layers_per_block))
-
-        output_channel = reversed_block_out_channels[0]
-        for i, up_block_type in enumerate(up_block_types):
-            print("up_block_type", up_block_type)
-            is_final_block = i == len(block_out_channels) - 1
-
-            prev_output_channel = output_channel
-            output_channel = reversed_block_out_channels[i]
-            input_channel = reversed_block_out_channels[min(i + 1, len(block_out_channels) - 1)]
-
-            # add upsample block for all BUT final layer
-            if not is_final_block:
-                add_upsample = True
-                self.num_upsamplers += 1
-            else:
-                add_upsample = False
-
-            up_block = get_up_block(
-                up_block_type,
-                num_layers=reversed_layers_per_block[i] + 1,
-                transformer_layers_per_block=reversed_transformer_layers_per_block[i],
-                in_channels=input_channel,
-                out_channels=output_channel,
-                prev_output_channel=prev_output_channel,
-                temb_channels=blocks_time_embed_dim,
-                add_upsample=add_upsample,
-                resnet_eps=1e-5,
-                resolution_idx=i,
-                cross_attention_dim=reversed_cross_attention_dim[i],
-                num_attention_heads=reversed_num_attention_heads[i],
-                resnet_act_fn="silu",
-            )
-            self.up_blocks.append(up_block)
-            prev_output_channel = output_channel
-
-        # out
-        self.conv_norm_out = nn.GroupNorm(num_channels=block_out_channels[0], num_groups=32, eps=1e-5)
-        self.conv_act = nn.SiLU()
-
-        self.conv_out = nn.Conv2d(
-            block_out_channels[0],
-            out_channels,
-            kernel_size=3,
-            padding=1,
+        controlnet = cls(
+            sample_size=unet.config.sample_size,
+            in_channels=unet.config.in_channels,
+            conditioning_channels=conditioning_channels,
+            down_block_types=unet.config.down_block_types,
+            block_out_channels=unet.config.block_out_channels,
+            addition_time_embed_dim=unet.config.addition_time_embed_dim,
+            projection_class_embeddings_input_dim= unet.config.projection_class_embeddings_input_dim,
+            layers_per_block = unet.config.layers_per_block,
+            cross_attention_dim = unet.config.cross_attention_dim,
+            transformer_layers_per_block=unet.config.transformer_layers_per_block,
+            num_attention_heads=unet.config.num_attention_heads,
+            conditioning_embedding_out_channels=conditioning_embedding_out_channels,
+            num_frames = unet.config.num_frames,
         )
+
+        if load_weights_from_unet:
+            controlnet.conv_in.load_state_dict(unet.conv_in.state_dict())
+            controlnet.time_proj.load_state_dict(unet.time_proj.state_dict())
+            controlnet.time_embedding.load_state_dict(unet.time_embedding.state_dict())
+
+            controlnet.down_blocks.load_state_dict(unet.down_blocks.state_dict())
+            controlnet.mid_block.load_state_dict(unet.mid_block.state_dict())
+
+        return controlnet
 
     @property
     def attn_processors(self) -> Dict[str, AttentionProcessor]:
@@ -360,8 +406,11 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         timestep: Union[torch.Tensor, float, int],
         encoder_hidden_states: torch.Tensor,
         added_time_ids: torch.Tensor,
+        controlnet_cond: torch.FloatTensor,
+        conditioning_scale: float = 1.0,
+        guess_mode: bool = False,
         return_dict: bool = True,
-    ) -> Union[UNetSpatioTemporalConditionOutput, Tuple]:
+    ) -> Union[ControlNetOutput, Tuple]:
         r"""
         The [`UNetSpatioTemporalConditionModel`] forward method.
 
@@ -374,6 +423,13 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
             added_time_ids: (`torch.FloatTensor`):
                 The additional time ids with shape `(batch, num_additional_ids)`. These are encoded with sinusoidal
                 embeddings and added to the time embeddings.
+            controlnet_cond (`torch.FloatTensor`):
+                The conditional input tensor of shape `(batch_size, sequence_length, hidden_size)`.
+            conditioning_scale (`float`, defaults to `1.0`):
+                The scale factor for ControlNet outputs.
+            guess_mode (`bool`, defaults to `False`):
+                In this mode, the ControlNet encoder tries its best to recognize the input content of the input even if
+                you remove all prompts. A `guidance_scale` between 3.0 and 5.0 is recommended.
             return_dict (`bool`, *optional*, defaults to `True`):
                 Whether or not to return a [`~models.unet_slatio_temporal.UNetSpatioTemporalConditionOutput`] instead of a plain
                 tuple.
@@ -436,6 +492,8 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
 
         # 2. pre-process
         sample = self.conv_in(sample)
+        controlnet_cond = self.controlnet_cond_embedding(controlnet_cond)
+        sample = sample + controlnet_cond
 
         image_only_indicator = torch.zeros(batch_size, num_frames, dtype=sample.dtype, device=sample.device)
 
@@ -465,36 +523,43 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
             image_only_indicator=image_only_indicator,
         )
 
-        # 5. up
-        for i, upsample_block in enumerate(self.up_blocks):
-            res_samples = down_block_res_samples[-len(upsample_block.resnets) :]
-            down_block_res_samples = down_block_res_samples[: -len(upsample_block.resnets)]
+        # 5. Control net blocks
+        controlnet_down_block_res_samples = ()
 
-            if hasattr(upsample_block, "has_cross_attention") and upsample_block.has_cross_attention:
-                sample = upsample_block(
-                    hidden_states=sample,
-                    temb=emb,
-                    res_hidden_states_tuple=res_samples,
-                    encoder_hidden_states=encoder_hidden_states,
-                    image_only_indicator=image_only_indicator,
-                )
-            else:
-                sample = upsample_block(
-                    hidden_states=sample,
-                    temb=emb,
-                    res_hidden_states_tuple=res_samples,
-                    image_only_indicator=image_only_indicator,
-                )
+        for down_block_res_sample, controlnet_block in zip(down_block_res_samples, self.controlnet_down_blocks):
+            down_block_res_sample = controlnet_block(down_block_res_sample)
+            controlnet_down_block_res_samples = controlnet_down_block_res_samples + (down_block_res_sample,)
 
-        # 6. post-process
-        sample = self.conv_norm_out(sample)
-        sample = self.conv_act(sample)
-        sample = self.conv_out(sample)
+        down_block_res_samples = controlnet_down_block_res_samples
 
-        # 7. Reshape back to original shape
-        sample = sample.reshape(batch_size, num_frames, *sample.shape[1:])
+        mid_block_res_sample = self.controlnet_mid_block(sample)
+
+        # 6. scaling
+        if guess_mode and not self.config.global_pool_conditions:
+            scales = torch.logspace(-1, 0, len(down_block_res_samples) + 1, device=sample.device)  # 0.1 to 1.0
+            scales = scales * conditioning_scale
+            down_block_res_samples = [sample * scale for sample, scale in zip(down_block_res_samples, scales)]
+            mid_block_res_sample = mid_block_res_sample * scales[-1]  # last one
+        else:
+            down_block_res_samples = [sample * conditioning_scale for sample in down_block_res_samples]
+            mid_block_res_sample = mid_block_res_sample * conditioning_scale
+
+        if self.config.global_pool_conditions:
+            down_block_res_samples = [
+                torch.mean(sample, dim=(2, 3), keepdim=True) for sample in down_block_res_samples
+            ]
+            mid_block_res_sample = torch.mean(mid_block_res_sample, dim=(2, 3), keepdim=True)
 
         if not return_dict:
-            return (sample,)
+            return (down_block_res_samples, mid_block_res_sample)
 
-        return UNetSpatioTemporalConditionOutput(sample=sample)
+        return ControlNetOutput(
+            down_block_res_samples=down_block_res_samples, mid_block_res_sample=mid_block_res_sample
+        )
+
+
+
+def zero_module(module):
+    for p in module.parameters():
+        nn.init.zeros_(p)
+    return module
