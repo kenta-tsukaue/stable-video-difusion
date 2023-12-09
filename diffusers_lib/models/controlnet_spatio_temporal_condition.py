@@ -526,13 +526,14 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
             encoder_hidden_states=encoder_hidden_states,
             image_only_indicator=image_only_indicator,
         )
+        print("\nsample_aftermid", sample.size())
 
         # 5. Control net blocks
         controlnet_down_block_res_samples = ()
 
         # print
         for down_block_res_sample, controlnet_block in zip(down_block_res_samples, self.controlnet_down_blocks):
-            print(down_block_res_sample.size(), "\n",  controlnet_block)
+            print("\ndown_block_res_sample.size()", down_block_res_sample.size(), "\ncontrolnet_block",  controlnet_block)
             
 
         for down_block_res_sample, controlnet_block in zip(down_block_res_samples, self.controlnet_down_blocks):
