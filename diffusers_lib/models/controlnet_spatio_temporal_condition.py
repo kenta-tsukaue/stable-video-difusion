@@ -493,7 +493,11 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
         # emb: [batch, channels] -> [batch * frames, channels]
         emb = emb.repeat_interleave(num_frames, dim=0)
         # encoder_hidden_states: [batch, 1, channels] -> [batch * frames, 1, channels]
+        print("要チェック")
+        print("\nencoder_hidden_states.size()", encoder_hidden_states.size())
         encoder_hidden_states = encoder_hidden_states.repeat_interleave(num_frames, dim=0)
+        print("\nencoder_hidden_states.size()", encoder_hidden_states.size())
+        
 
         # 2. pre-process
         sample = self.conv_in(sample)
