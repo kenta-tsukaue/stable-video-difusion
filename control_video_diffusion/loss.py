@@ -294,6 +294,8 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
     # 各フレームを個別に処理
     for frame_idx in range(num_frames):
+        torch.cuda.empty_cache()
+        print(frame_idx)
         # フレームを取り出す
         frame = video[:, frame_idx, :, :, :].to(device=device)
         
