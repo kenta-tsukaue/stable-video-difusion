@@ -263,7 +263,7 @@ def prepare_image(
     return image
 
 def encode_vae_video(vae, video: torch.Tensor, device):
-    vae.to(device)
+    print("video.size()",video.size())
     # 元のビデオの形状を保存
     batch_size, num_frames, channels, height, width = video.size()
 
@@ -272,9 +272,10 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
     # デバイスに送る
     video_flattened = video_flattened.to(device=device)
-
+    print("video_flattened.size()",video_flattened.size())
     # VAEを使用してエンコード
     video_latents = vae.encode(video_flattened).latent_dist.mode()
+    print("video_latents.size()", video_latents.size())
 
     # テンソルを元のビデオ形状に戻す（バッチサイズ、フレーム数、チャネル、縦、横）
     video_latents = video_latents.view(batch_size, num_frames, channels, height, width)
