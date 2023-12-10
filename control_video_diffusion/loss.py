@@ -294,7 +294,6 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
     # 各フレームを個別に処理
     for frame_idx in range(num_frames):
-        torch.cuda.empty_cache()
         print(frame_idx)
         # フレームを取り出す
         frame = video[:, frame_idx, :, :, :].to(device=device)
@@ -303,9 +302,17 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
         # VAEを使用してエンコード
         frame_latent = vae.encode(frame).latent_dist.mode()
+        print("frame_latent.size()", frame_latent.size())
         
         # 処理結果をリストに追加
         video_latents_list.append(frame_latent)
+
+        # 中間テンソルの削除
+        del frame
+        del frame_latent
+
+        # GPUメモリキャッシュのクリア
+        torch.cuda.empty_cache()
 
     # 処理結果を結合
     video_latents = torch.stack(video_latents_list, dim=1)
