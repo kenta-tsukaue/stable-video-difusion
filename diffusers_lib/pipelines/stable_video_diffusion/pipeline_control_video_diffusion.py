@@ -502,7 +502,9 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
         height, width = image_c.shape[-2:]
 
         # 4. Encode input image using VAE
+        print("\nimage.size()", image.size())
         image = self.image_processor.preprocess(image, height=height, width=width)
+        print("\nimage.size()", image.size())
         noise = randn_tensor(image.shape, generator=generator, device=image.device, dtype=image.dtype)
         image = image + noise_aug_strength * noise
 
@@ -512,6 +514,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
 
         image_latents = self._encode_vae_image(image, device, num_videos_per_prompt, do_classifier_free_guidance)
         image_latents = image_latents.to(image_embeddings.dtype)
+        print("\nimage_latents.size()", image_latents.size())
 
         # cast back to fp16 if needed
         if needs_upcasting:
