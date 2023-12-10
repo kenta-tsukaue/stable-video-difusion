@@ -297,6 +297,8 @@ def encode_vae_video(vae, video: torch.Tensor, device):
         # フレームを取り出す
         frame = video[:, frame_idx, :, :, :].to(device=device)
         
+        print("frame.size()", frame.size())
+
         # VAEを使用してエンコード
         frame_latent = vae.encode(frame).latent_dist.mode()
         
