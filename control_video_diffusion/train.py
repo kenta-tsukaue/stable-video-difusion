@@ -130,7 +130,6 @@ def main():
     vae.to(device)
     controlnet.to(device)
     image_encoder.to(device)
-    feature_extractor.to(device)
 
 
     # to eval mode　
