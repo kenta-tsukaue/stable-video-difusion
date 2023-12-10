@@ -117,7 +117,7 @@ def get_loss(
 
     video_latents = encode_vae_video(vae, video, device)
     video_latents = image_latents.to(image_embeddings.dtype)
-    
+
 
     print("\nvideo_latents.size()", video_latents.size())
 
@@ -263,6 +263,7 @@ def prepare_image(
     return image
 
 def encode_vae_video(vae, video: torch.Tensor, device):
+    vae.to(device)
     # 元のビデオの形状を保存
     batch_size, num_frames, channels, height, width = video.size()
 
