@@ -263,6 +263,7 @@ def prepare_image(
     return image
 
 def encode_vae_video(vae, video: torch.Tensor, device):
+    torch.cuda.empty_cache()
     print("video.size()",video.size())
     # 元のビデオの形状を保存
     batch_size, num_frames, channels, height, width = video.size()
