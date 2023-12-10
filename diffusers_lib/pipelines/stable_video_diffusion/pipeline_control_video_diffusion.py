@@ -115,7 +115,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
         self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
         self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor)
         self.control_image_processor = VaeImageProcessor(
-            vae_scale_factor=self.vae_scale_factor, do_convert_rgb=True, do_normalize=False
+            vae_scale_factor=self.vae_scale_factor, do_normalize=False
         )
 
     def _encode_image(self, image, device, num_videos_per_prompt, do_classifier_free_guidance):
@@ -331,6 +331,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
     @property
     def num_timesteps(self):
         return self._num_timesteps
+    
 
     @torch.no_grad()
     def __call__(
@@ -532,11 +533,11 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
         )
         added_time_ids = added_time_ids.to(device)
 
-        # 4. Prepare timesteps
+        # 6. Prepare timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)
         timesteps = self.scheduler.timesteps
 
-        # 5. Prepare latent variables
+        # 7. Prepare latent variables
         num_channels_latents = self.unet.config.in_channels
         latents = self.prepare_latents(
             batch_size * num_videos_per_prompt,
@@ -550,7 +551,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
             latents,
         )
 
-        # 7. Prepare guidance scale
+        # 8. Prepare guidance scale
         guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
         guidance_scale = guidance_scale.to(device, latents.dtype)
         guidance_scale = guidance_scale.repeat(batch_size * num_videos_per_prompt, 1)
@@ -566,7 +567,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
             ]
             controlnet_keep.append(keeps[0])
         
-        # 8. Denoising loop
+        # 9. Denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         self._num_timesteps = len(timesteps)
         with self.progress_bar(total=num_inference_steps) as progress_bar:
@@ -640,8 +641,9 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
             return frames
 
         return ControlVideoDiffusionPipelineOutput(frames=frames)
+    
 
-
+    
 # resizing utils
 # TODO: clean up later
 def _resize_with_antialiasing(input, size, interpolation="bicubic", align_corners=True):
