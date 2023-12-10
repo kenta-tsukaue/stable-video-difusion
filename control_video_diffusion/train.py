@@ -23,6 +23,9 @@ from  diffusers_lib.pipelines.stable_video_diffusion.pipeline_control_video_diff
 from  diffusers_lib.models.controlnet_spatio_temporal_condition import ControlNetSpatioTemporalConditionModel
 
 
+# max_split_size_mbを512MBまたは256MBに設定
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:512'
+
 
 #========[train]========
 def train_loop(
