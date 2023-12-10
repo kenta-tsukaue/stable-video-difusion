@@ -117,6 +117,7 @@ def get_loss(
 
     video_latents = encode_vae_video(vae, video, device)
     video_latents = image_latents.to(image_embeddings.dtype)
+    
 
     print("\nvideo_latents.size()", video_latents.size())
 
