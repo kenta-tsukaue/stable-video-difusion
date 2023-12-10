@@ -98,7 +98,7 @@ def evaluate(config, epoch, pipeline):
 #========[main]========
 def main():
     #set device
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # import config
     config = TrainingConfig()
