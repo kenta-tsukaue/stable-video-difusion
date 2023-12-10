@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_video
 from torchvision.transforms import Compose, Resize, Normalize, ToTensor
-import imageio
-from IPython.display import Video
+
 
 class CustomVideoDataset(Dataset):
     def __init__(self, config, transform=None):
