@@ -262,7 +262,7 @@ def prepare_image(
 
     return image
 
-def encode_vae_video(vae, video: torch.Tensor, device):
+"""def encode_vae_video(vae, video: torch.Tensor, device):
     torch.cuda.empty_cache()
     print("video.size()",video.size())
     # 元のビデオの形状を保存
@@ -281,7 +281,40 @@ def encode_vae_video(vae, video: torch.Tensor, device):
     # テンソルを元のビデオ形状に戻す（バッチサイズ、フレーム数、チャネル、縦、横）
     video_latents = video_latents.view(batch_size, num_frames, channels, height, width)
 
+    return video_latents"""
+def encode_vae_video(vae, video: torch.Tensor, device):
+    torch.cuda.empty_cache()
+    print("video.size()", video.size())
+
+    # 元のビデオの形状を保存
+    batch_size, num_frames, channels, height, width = video.size()
+
+    # 出力用のリストを初期化
+    video_latents_list = []
+
+    # 各フレームを個別に処理
+    for frame_idx in range(num_frames):
+        # フレームを取り出す
+        frame = video[:, frame_idx, :, :, :].to(device=device)
+        
+        # VAEを使用してエンコード
+        frame_latent = vae.encode(frame).latent_dist.mode()
+        
+        # 処理結果をリストに追加
+        video_latents_list.append(frame_latent)
+
+    # 処理結果を結合
+    video_latents = torch.stack(video_latents_list, dim=1)
+    print(" video_latents.size()",  video_latents.size())
+
+
+    # 結果を元のビデオ形状に戻す
+    video_latents = video_latents.view(batch_size, num_frames, channels, height, width)
+    print(" video_latents.size()",  video_latents.size())
+
+
     return video_latents
+
 
 
 def get_add_time_ids(
