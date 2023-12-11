@@ -8,6 +8,7 @@ parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 import diffusers_lib
 from get_model import getModel
+from utils.check_gpu import display_gpu
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 #device = 'cpu'
@@ -30,8 +31,9 @@ def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
             if accepts_num_frames:
                 # we only pass num_frames_in if it's expected
                 decode_kwargs["num_frames"] = num_frames_in
-
-            frame = vae.decode(latents[i : i + decode_chunk_size], **decode_kwargs).sample
+            with torch.no_grad():
+                display_gpu("本代入前")
+                frame = vae.decode(latents[i : i + decode_chunk_size], **decode_kwargs).sample
             frames.append(frame)
         frames = torch.cat(frames, dim=0)
 
@@ -89,12 +91,13 @@ with torch.no_grad():
     vae = getModel("vae").to(device).to(dtype=torch.float32)
     vae.eval()
 
-
+    display_gpu("vae")
     # Pickleファイルから読み込み
     with open(file_name, 'rb') as f:
         latents = pickle.load(f).to(device).to(dtype=torch.float32)
 
     print(latents.size())
+    display_gpu("代入前")
     frames = decode_latents(vae, latents, 14, 14)
 
 
