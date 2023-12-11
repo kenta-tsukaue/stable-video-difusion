@@ -13,37 +13,6 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 
 
-"""def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
-        # [batch, frames, channels, height, width] -> [batch*frames, channels, height, width]
-        latents = latents.flatten(0, 1)
-
-        latents = 1 / vae.config.scaling_factor * latents
-
-        accepts_num_frames = "num_frames" in set(inspect.signature(vae.forward).parameters.keys())
-
-        # decode decode_chunk_size frames at a time to avoid OOM
-        frames = []
-        for i in range(0, latents.shape[0], decode_chunk_size):
-            print(i)
-            num_frames_in = latents[i : i + decode_chunk_size].shape[0]
-            decode_kwargs = {}
-            if accepts_num_frames:
-                # we only pass num_frames_in if it's expected
-                decode_kwargs["num_frames"] = num_frames_in
-
-            frame = vae.decode(latents[i : i + decode_chunk_size], **decode_kwargs).sample
-            frames.append(frame)
-            # 不要なテンソルの削除
-        
-        frames = torch.cat(frames, dim=0)
-
-        # [batch*frames, channels, height, width] -> [batch, channels, frames, height, width]
-        frames = frames.reshape(-1, num_frames, *frames.shape[1:]).permute(0, 2, 1, 3, 4)
-
-        # we always cast to float32 as this does not cause significant overhead and is compatible with bfloat16
-        frames = frames.float()
-        return frames"""
-
 def decode_vae_latent(vae, latents, device):
     #print("video.size()", video.size())
     # 元のビデオの形状を保存
@@ -58,10 +27,10 @@ def decode_vae_latent(vae, latents, device):
 
         # 各フレームを個別に処理
         for frame_idx in range(num_frames):
-            #print(batch_idx, frame_idx)
+            print(batch_idx, frame_idx)
             # フレームを取り出す
             frame_latent = latents[batch_idx, frame_idx, :, :, :].unsqueeze(0).to(device=device)
-            
+            print(frame_latent.size())
             # VAEを使用してエンコード
             frame = vae.decode(frame_latent, 14).sample
 
