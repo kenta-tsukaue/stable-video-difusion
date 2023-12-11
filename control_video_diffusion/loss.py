@@ -46,9 +46,6 @@ def get_loss(
     control_guidance_start: Union[float, List[float]] = 0.0,
     control_guidance_end: Union[float, List[float]] = 1.0,
 ):
-    
-    print("train_method")
-
     controlnet = controlnet._orig_mod if is_compiled_module(controlnet) else controlnet
 
 
@@ -87,7 +84,6 @@ def get_loss(
 
     guess_mode = guess_mode
     do_classifier_free_guidance = max_guidance_scale > 1.0
-    print(do_classifier_free_guidance)
 
     # 3-1. Encode input image
     image_embeddings = encode_image(image, device, num_videos_per_prompt, do_classifier_free_guidance, image_encoder, feature_extractor, image_processor)
@@ -148,9 +144,9 @@ def get_loss(
     noise_scheduler.set_timesteps(num_inference_steps, device=device)
     timesteps = noise_scheduler.timesteps
 
-    # 7. Prepare latent variables
+    # 7. Prepare noise variables and timestep
     num_channels_latents = unet.config.in_channels
-    latents = prepare_latents(
+    noise = prepare_noise(
         batch_size * num_videos_per_prompt,
         num_frames,
         num_channels_latents,
@@ -158,16 +154,30 @@ def get_loss(
         width,
         image_embeddings.dtype,
         device,
-        generator,
         vae_scale_factor,
-        noise_scheduler,
-        latents,
     )
+
+
+    timesteps = torch.randint(
+        0, noise_scheduler.config.num_train_timesteps, (batch_size,), device=device,
+        dtype=torch.int64
+    )
+
     # 8. Prepare guidance scale
     guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
     guidance_scale = guidance_scale.to(device, latents.dtype)
     guidance_scale = guidance_scale.repeat(batch_size * num_videos_per_prompt, 1)
     guidance_scale = _append_dims(guidance_scale, latents.ndim)
+
+
+    # predict noise
+    print("\nvideo_latents", video_latents.size())
+    print("\nnoise", noise.size())
+    print("\ntimesteps", timesteps.size())
+    latent_model_input = noise_scheduler.add_noise(video_latents, noise, timesteps)
+    print("\nlatent_model_input", latent_model_input.size())
+    latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
+    print("\nlatent_model_input", latent_model_input.size())
 
     return 0
 
@@ -338,7 +348,7 @@ def get_add_time_ids(
 
     return add_time_ids
 
-def prepare_latents(
+def prepare_noise(
         batch_size,
         num_frames,
         num_channels_latents,
@@ -346,10 +356,7 @@ def prepare_latents(
         width,
         dtype,
         device,
-        generator,
         vae_scale_factor,
-        scheduler,
-        latents=None,
     ):
         shape = (
             batch_size,
@@ -358,19 +365,8 @@ def prepare_latents(
             height // vae_scale_factor,
             width // vae_scale_factor,
         )
-        if isinstance(generator, list) and len(generator) != batch_size:
-            raise ValueError(
-                f"You have passed a list of generators of length {len(generator)}, but requested an effective batch"
-                f" size of {batch_size}. Make sure the batch size matches the length of the generators."
-            )
+        latents = torch.randn(shape, device=device, dtype=dtype)
 
-        if latents is None:
-            latents = randn_tensor(shape, generator=generator, device=device, dtype=dtype)
-        else:
-            latents = latents.to(device)
-
-        # scale the initial noise by the standard deviation required by the scheduler
-        latents = latents * scheduler.init_noise_sigma
         return latents
 
 
