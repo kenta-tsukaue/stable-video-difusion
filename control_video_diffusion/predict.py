@@ -17,7 +17,7 @@ from  diffusers_lib.pipelines.stable_video_diffusion.pipeline_control_video_diff
 from  diffusers_lib.models.controlnet_spatio_temporal_condition import ControlNetSpatioTemporalConditionModel
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 
 #========[import models]========
 unet = getModel("unet")
