@@ -160,7 +160,7 @@ def get_loss(
 
 
     timesteps = get_timesteps(noise_scheduler, batch_size)
-
+    timesteps = torch.cat((timesteps, timesteps), dim=0)
     # 8. Prepare guidance scale
     guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
     guidance_scale = guidance_scale.to(device, noise.dtype)
