@@ -316,9 +316,12 @@ def encode_vae_video(vae, video: torch.Tensor, device):
             torch.cuda.empty_cache()
 
             # 各バッチのフレームを結合
+            print("torch.stack(batch_latents, dim=1)", torch.stack(batch_latents, dim=1).size())
             video_latents_list.append(torch.stack(batch_latents, dim=1))
 
     # 全バッチを結合
+    for batch_idx in range(batch_size):
+        print("video_latents_list[i].size()", video_latents_list[batch_idx].size())
     video_latents = torch.cat(video_latents_list, dim=0).to(device=device)
     print("video_latents.size()", video_latents.size())
 
