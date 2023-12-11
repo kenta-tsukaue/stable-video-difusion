@@ -499,6 +499,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
                 do_classifier_free_guidance=do_classifier_free_guidance,
                 guess_mode=guess_mode,
             )
+        print("\nimage_c.size()", image_c.size())
         height, width = image_c.shape[-2:]
 
         # 4. Encode input image using VAE
