@@ -53,7 +53,7 @@ with open(file_name, 'rb') as f:
     latents = pickle.load(f)
 
 
-frames = decode_latents(vae.latents, 14, 14)
+frames = decode_latents(vae, latents, 14, 14)
 
 
 # 画像のリストを取得
