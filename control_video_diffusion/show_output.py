@@ -9,7 +9,8 @@ sys.path.append(parent_directory)
 import diffusers_lib
 from get_model import getModel
 
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+#device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cpu')
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 
 
@@ -43,9 +44,6 @@ def decode_vae_latent(vae, latents, device):
 
             # GPUメモリキャッシュのクリア
             torch.cuda.empty_cache()
-
-            # 各バッチのフレームを結合
-            #print("torch.stack(batch_latents, dim=1)", torch.stack(batch_latents, dim=1).size())
         
         video_list.append(torch.stack(batch_latents, dim=1))
 
