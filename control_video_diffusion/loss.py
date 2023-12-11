@@ -3,6 +3,7 @@ import sys
 from typing import Callable, Dict, List, Optional, Union
 
 import torch
+import torch.nn.functional as F
 import PIL.Image
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -167,18 +168,35 @@ def get_loss(
     guidance_scale = _append_dims(guidance_scale, noise.ndim)
 
 
-    # predict noise
-    print("\nvideo_latents", video_latents.size())
-    print("\nnoise", noise.size())
-    print("\ntimesteps", timesteps.size())
-    print("\ntimesteps", timesteps)
+    # 9. predict noise
     latent_model_input = noise_scheduler.add_noise(video_latents, noise, timesteps)
-    print("\nlatent_model_input", latent_model_input.size())
     latent_model_input = torch.cat([video_latents] * 2) if do_classifier_free_guidance else latents
-    print("\nlatent_model_input", latent_model_input.size())
     latent_model_input = torch.cat((latent_model_input, latent_model_input), dim=2)
-    print("\nlatent_model_input", latent_model_input.size())
-    return 0
+
+    control_model_input = latent_model_input
+    controlnet_prompt_embeds = image_embeddings
+
+    down_block_res_samples, mid_block_res_sample = controlnet(
+        control_model_input,
+        timesteps,
+        encoder_hidden_states=controlnet_prompt_embeds,
+        controlnet_cond=image,
+        guess_mode=guess_mode,
+        added_time_ids=added_time_ids,
+        return_dict=False,
+    )
+    noise_pred = unet(
+        latent_model_input,
+        timesteps,
+        encoder_hidden_states=image_embeddings,
+        down_block_additional_residuals=down_block_res_samples,
+        mid_block_additional_residual=mid_block_res_sample,
+        added_time_ids=added_time_ids,
+        return_dict=False,
+    )[0]
+    loss = F.mse_loss(noise_pred, noise)
+    
+    return loss
 
 """def get_timesteps(noise_scheduler, batch_size):
     # 初期値

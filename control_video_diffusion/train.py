@@ -59,6 +59,7 @@ def train_loop(
                 first_frame,#最初のフレーム
                 last_frame,#最後のフレーム
             )
+            print(loss)
 
             """loss.backward()
             optimizer.step()
