@@ -25,7 +25,7 @@ from  diffusers_lib.models.controlnet_spatio_temporal_condition import ControlNe
 
 
 # max_split_size_mbを512MBまたは256MBに設定
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 better_exceptions.MAX_LENGTH = None
 
 #========[train]========
