@@ -116,11 +116,12 @@ def get_loss(
         vae.to(dtype=torch.float32)
 
     video_latents = encode_vae_video(vae, video, device)
-    video_latents = image_latents.to(image_embeddings.dtype)
+    video_latents = video_latents.to(image_embeddings.dtype)
 
 
     print("\nvideo_latents.size()", video_latents.size())
 
+    """
     # cast back to fp16 if needed
     if needs_upcasting:
         vae.to(dtype=torch.float16)
@@ -128,6 +129,7 @@ def get_loss(
     # Repeat the image latents for each frame so we can concatenate them with the noise
     # image_latents [batch, channels, height, width] ->[batch, num_frames, channels, height, width]
     image_latents = image_latents.unsqueeze(1).repeat(1, num_frames, 1, 1, 1)
+    """
 
     # 5. Get Added Time IDs
     added_time_ids = get_add_time_ids(
