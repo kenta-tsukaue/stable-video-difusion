@@ -55,7 +55,7 @@ vae = getModel("vae")
 with open(file_name, 'rb') as f:
     latents = pickle.load(f).to("cpu").to(dtype=torch.float32)
 
-
+print(latents.size())
 frames = decode_latents(vae, latents, 14, 14)
 
 
