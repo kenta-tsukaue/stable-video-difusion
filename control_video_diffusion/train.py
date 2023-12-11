@@ -3,6 +3,7 @@ import os
 import pickle
 import sys
 
+import better_exceptions
 from diffusers import EulerDiscreteScheduler
 from diffusers.optimization import get_cosine_schedule_with_warmup
 from PIL import Image
@@ -25,7 +26,7 @@ from  diffusers_lib.models.controlnet_spatio_temporal_condition import ControlNe
 
 # max_split_size_mbを512MBまたは256MBに設定
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
-
+better_exceptions.MAX_LENGTH = None
 
 #========[train]========
 def train_loop(
