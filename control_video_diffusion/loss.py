@@ -315,8 +315,8 @@ def encode_vae_video(vae, video: torch.Tensor, device):
             # GPUメモリキャッシュのクリア
             torch.cuda.empty_cache()
 
-    # 各バッチのフレームを結合
-    video_latents_list.append(torch.stack(batch_latents, dim=1))
+            # 各バッチのフレームを結合
+            video_latents_list.append(torch.stack(batch_latents, dim=1))
 
     # 全バッチを結合
     video_latents = torch.cat(video_latents_list, dim=0).to(device=device)
