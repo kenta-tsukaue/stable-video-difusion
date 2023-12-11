@@ -193,7 +193,6 @@ def get_timesteps(noise_scheduler, batch_size):
     if beta_schedule == "scaled_linear":
         betas = torch.linspace(beta_start ** 0.5, beta_end ** 0.5, num_train_timesteps, dtype=torch.float32) ** 2
     else:
-        # 他のスケジュールタイプについては適宜処理を追加
         raise NotImplementedError(f"{beta_schedule} schedule is not implemented in this example")
 
     # Alpha値の計算
@@ -203,13 +202,8 @@ def get_timesteps(noise_scheduler, batch_size):
     # Sigma値の計算
     sigmas = ((1 - alphas_cumprod) / alphas_cumprod) ** 0.5
 
-    # Sigmasの範囲を調整
-    sigmas = sigmas * (sigma_max - sigma_min) + sigma_min
-
     # タイムステップの生成
-    
-    timesteps = torch.Tensor([0.25 * sigma.log() for sigma in torch.rand(bs) * (sigmas.max() - sigmas.min()) + sigmas.min()])
-    
+    timesteps = torch.Tensor([0.25 * sigmas[int(torch.rand(1).item() * num_train_timesteps)].log() for _ in range(bs)])
     return timesteps
 
 def _append_dims(x, target_dims):
