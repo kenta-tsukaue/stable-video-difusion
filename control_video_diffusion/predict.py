@@ -53,21 +53,22 @@ transform = transforms.Compose([
     #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # 正規化
 ])
 
-# 画像を変換
-tensor_image = transform(image)
+with torch.no_grad():
+    # 画像を変換
+    tensor_image = transform(image)
 
-# バッチ次元を追加
-tensor_image = tensor_image.unsqueeze(0).to(device)
+    # バッチ次元を追加
+    tensor_image = tensor_image.unsqueeze(0).to(device)
 
-print(tensor_image.size())
-output = pipe(tensor_image, tensor_image)
+    print(tensor_image.size())
+    output = pipe(tensor_image, tensor_image)
 
-# 保存するファイル名
-file_name = 'output.pkl'
+    # 保存するファイル名
+    file_name = 'output.pkl'
 
-# Pickleファイルとして保存
-with open(file_name, 'wb') as f:
-    pickle.dump(output, f)
+    # Pickleファイルとして保存
+    with open(file_name, 'wb') as f:
+        pickle.dump(output, f)
 
-print(f"File saved as {file_name}")
+    print(f"File saved as {file_name}")
     
