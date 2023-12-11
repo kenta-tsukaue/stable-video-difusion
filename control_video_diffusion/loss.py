@@ -180,7 +180,7 @@ def get_loss(
         control_model_input,
         timesteps,
         encoder_hidden_states=controlnet_prompt_embeds,
-        controlnet_cond=image,
+        controlnet_cond=image_c,
         guess_mode=guess_mode,
         added_time_ids=added_time_ids,
         return_dict=False,
