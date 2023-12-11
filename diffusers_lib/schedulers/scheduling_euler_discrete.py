@@ -180,6 +180,8 @@ class EulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
             self.timesteps = torch.Tensor([0.25 * sigma.log() for sigma in sigmas])
         else:
             self.timesteps = timesteps
+        
+        print()
 
         self.sigmas = torch.cat([sigmas, torch.zeros(1, device=sigmas.device)])
 

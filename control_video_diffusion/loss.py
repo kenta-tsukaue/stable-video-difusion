@@ -158,10 +158,7 @@ def get_loss(
     )
 
 
-    timesteps = torch.randint(
-        0, noise_scheduler.config.num_train_timesteps, (batch_size,), device=device,
-        dtype=torch.int64
-    )
+    timesteps = get_timesteps(noise_scheduler, batch_size)
 
     # 8. Prepare guidance scale
     guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
@@ -182,6 +179,38 @@ def get_loss(
 
     return 0
 
+def get_timesteps(noise_scheduler, batch_size):
+    # 初期値
+    bs = batch_size  # バッチサイズ
+    num_train_timesteps = noise_scheduler.config.num_train_timesteps
+    beta_start = noise_scheduler.config.beta_start
+    beta_end = noise_scheduler.config.beta_end
+    beta_schedule = noise_scheduler.config.beta_schedule
+    sigma_min = noise_scheduler.config.sigma_min
+    sigma_max = noise_scheduler.config.sigma_max
+
+    # Beta値の生成
+    if beta_schedule == "scaled_linear":
+        betas = torch.linspace(beta_start ** 0.5, beta_end ** 0.5, num_train_timesteps, dtype=torch.float32) ** 2
+    else:
+        # 他のスケジュールタイプについては適宜処理を追加
+        raise NotImplementedError(f"{beta_schedule} schedule is not implemented in this example")
+
+    # Alpha値の計算
+    alphas = 1.0 - betas
+    alphas_cumprod = torch.cumprod(alphas, dim=0)
+
+    # Sigma値の計算
+    sigmas = ((1 - alphas_cumprod) / alphas_cumprod) ** 0.5
+
+    # Sigmasの範囲を調整
+    sigmas = sigmas * (sigma_max - sigma_min) + sigma_min
+
+    # タイムステップの生成
+    
+    timesteps = torch.Tensor([0.25 * sigma.log() for sigma in torch.rand(bs) * (sigmas.max() - sigmas.min()) + sigmas.min()])
+    
+    return timesteps
 
 def _append_dims(x, target_dims):
     """Appends dimensions to the end of a tensor until it has target_dims dimensions."""

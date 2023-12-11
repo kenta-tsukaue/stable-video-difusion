@@ -2,9 +2,10 @@ import json
 import sys
 import os
 from typing import Union
-from diffusers import AutoencoderKLTemporalDecoder, EulerDiscreteScheduler
+from diffusers import AutoencoderKLTemporalDecoder
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from safetensors import safe_open
+
 
 
 
@@ -15,7 +16,7 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 from controlled_unet import ControlledUnetModel
-
+from  diffusers_lib.schedulers.scheduling_euler_discrete import EulerDiscreteScheduler
 # model information
 model_dict = {
     "unet": {"model":ControlledUnetModel, "config_path": "config.json", "exist_safetensor_file":True},
