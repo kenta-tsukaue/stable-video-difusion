@@ -278,8 +278,8 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
 
         image = image.to(device=device, dtype=dtype)
 
-        if do_classifier_free_guidance and not guess_mode:
-            image = torch.cat([image] * 2)
+        """if do_classifier_free_guidance and not guess_mode:
+            image = torch.cat([image] * 2)"""
 
         return image
     
@@ -594,7 +594,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
                     control_model_input,
                     t,
                     encoder_hidden_states=controlnet_prompt_embeds,
-                    controlnet_cond=image,
+                    controlnet_cond=image_c,
                     guess_mode=guess_mode,
                     added_time_ids=added_time_ids,
                     return_dict=False,

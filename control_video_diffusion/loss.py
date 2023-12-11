@@ -319,8 +319,8 @@ def prepare_image(
 
     image = image.to(device=device, dtype=dtype)
 
-    if do_classifier_free_guidance and not guess_mode:
-        image = torch.cat([image] * 2)
+    """if do_classifier_free_guidance and not guess_mode:
+        image = torch.cat([image] * 2)"""
 
     return image
 
