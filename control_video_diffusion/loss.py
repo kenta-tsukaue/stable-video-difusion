@@ -179,7 +179,7 @@ def get_loss(
 
     return 0
 
-def get_timesteps(noise_scheduler, batch_size):
+"""def get_timesteps(noise_scheduler, batch_size):
     # 初期値
     bs = batch_size  # バッチサイズ
     num_train_timesteps = noise_scheduler.config.num_train_timesteps
@@ -204,6 +204,12 @@ def get_timesteps(noise_scheduler, batch_size):
 
     # タイムステップの生成
     timesteps = torch.Tensor([0.25 * sigmas[int(torch.rand(1).item() * num_train_timesteps)].log() for _ in range(bs)])
+    return timesteps"""
+
+def get_timesteps(noise_scheduler, batch_size):
+    # self.timesteps からランダムにサンプリング
+    timesteps_indices = torch.randint(0, len(noise_scheduler.timesteps), (batch_size,))
+    timesteps = noise_scheduler.timesteps[timesteps_indices]
     return timesteps
 
 def _append_dims(x, target_dims):
