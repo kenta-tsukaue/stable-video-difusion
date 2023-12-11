@@ -506,10 +506,10 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
         controlnet_cond = self.controlnet_cond_embedding(controlnet_cond)
         print("\ncontrolnet_cond.size()", controlnet_cond.size())
         #sample = sample + controlnet_cond これだとバッチサイズが１の時しか使えない
-        # tensor1 の最初の28バッチに対して、tensor2 の各バッチを足し合わせる
+        # tensor1 の最初の14バッチに対して、tensor2 の各バッチを足し合わせる
         for i in range(len(controlnet_cond)):
-            start_idx = i * len(sample)/len(controlnet_cond)
-            end_idx = start_idx + len(sample)/len(controlnet_cond)
+            start_idx = int(i * len(sample) / len(controlnet_cond))
+            end_idx = int((i + 1) * len(sample) / len(controlnet_cond))
             sample[start_idx:end_idx] += controlnet_cond[i]
 
         image_only_indicator = torch.zeros(batch_size, num_frames, dtype=sample.dtype, device=sample.device)
