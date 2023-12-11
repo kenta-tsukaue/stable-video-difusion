@@ -283,38 +283,38 @@ def prepare_image(
 
     return video_latents"""
 def encode_vae_video(vae, video: torch.Tensor, device):
-    torch.cuda.empty_cache()
     print("video.size()", video.size())
 
-    # 元のビデオの形状を保存
-    batch_size, num_frames, channels, height, width = video.size()
-
-    # 出力用のリストを初期化
     video_latents_list = []
 
-    # 各フレームを個別に処理
-    for frame_idx in range(num_frames):
-        # フレームを取り出す
-        frame = video[:, frame_idx, :, :, :].to(device=device)
-        
-        # VAEを使用してエンコード
-        frame_latent = vae.encode(frame).latent_dist.mode().detach()
+    # バッチごとにループ
+    for batch_idx in range(len(video)):
+        batch_latents = []
 
-        # 処理結果をリストに追加
-        video_latents_list.append(frame_latent.cpu())  # GPUからCPUへ移動
+        # 各フレームを個別に処理
+        for frame_idx in range(len(video[0])):
+            # フレームを取り出す
+            frame = video[batch_idx, frame_idx, :, :, :].unsqueeze(0).to(device=device)
+            
+            # VAEを使用してエンコード
+            frame_latent = vae.encode(frame).latent_dist.mode().detach()
 
-        # 不要なテンソルの削除
-        del frame
-        del frame_latent
+            # 処理結果をリストに追加
+            batch_latents.append(frame_latent.cpu())
 
-        # GPUメモリキャッシュのクリア
-        torch.cuda.empty_cache()
+            # 不要なテンソルの削除
+            del frame
+            del frame_latent
 
-    # 処理結果を結合
-    video_latents = torch.stack(video_latents_list, dim=1).to(device=device)
+            # GPUメモリキャッシュのクリア
+            torch.cuda.empty_cache()
+
+    # 各バッチのフレームを結合
+    video_latents_list.append(torch.stack(batch_latents, dim=1))
+
+    # 全バッチを結合
+    video_latents = torch.cat(video_latents_list, dim=0).to(device=device)
     print("video_latents.size()", video_latents.size())
-    # 結果を元のビデオ形状に戻す
-    video_latents = video_latents.view(batch_size, num_frames, channels, height, width)
 
     return video_latents
 
