@@ -137,6 +137,10 @@ def main():
     controlnet.to(device).to(dtype=torch.float16)
     image_encoder.to(device).to(dtype=torch.float16)
 
+    # 新たに割り当てられたメモリ量を確認
+    memory_allocated = torch.cuda.memory_allocated()
+    print(f"Memory allocated: {memory_allocated} bytes")
+
 
     # to eval mode　
     unet.eval()
