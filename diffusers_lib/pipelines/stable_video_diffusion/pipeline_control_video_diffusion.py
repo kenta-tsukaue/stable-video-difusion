@@ -637,7 +637,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
             frames = self.decode_latents(latents, num_frames, decode_chunk_size)
             frames = tensor2vid(frames, self.image_processor, output_type=output_type)
         else:
-            frames = latents
+            frames = latents.to(device)
             return frames
 
         self.maybe_free_model_hooks()
