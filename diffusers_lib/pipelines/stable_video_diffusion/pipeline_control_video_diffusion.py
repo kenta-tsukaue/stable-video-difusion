@@ -638,6 +638,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
             frames = tensor2vid(frames, self.image_processor, output_type=output_type)
         else:
             frames = latents
+            return frames
 
         self.maybe_free_model_hooks()
 
