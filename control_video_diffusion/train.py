@@ -52,7 +52,7 @@ def train_loop(
         progress_bar.set_description(f"Epoch {epoch}")
 
         for step, (video, first_frame, last_frame, label) in enumerate(train_dataloader):
-            display_gpu()
+            display_gpu("step開始")
             # get loss
             loss = get_loss(
                 video,

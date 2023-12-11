@@ -120,7 +120,7 @@ def get_loss(
 
 
     print("\nvideo_latents.size()", video_latents.size())
-    display_gpu()
+    display_gpu("video_latents取得後")
 
     """
     # cast back to fp16 if needed
@@ -180,8 +180,8 @@ def get_loss(
     control_model_input = latent_model_input
     controlnet_prompt_embeds = image_embeddings
 
-    display_gpu()
-    
+    display_gpu("controlnetへの代入前")
+
     down_block_res_samples, mid_block_res_sample = controlnet(
         control_model_input,
         timesteps,

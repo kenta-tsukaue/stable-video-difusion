@@ -4,7 +4,7 @@ def bytes_to_gb(bytes):
     """ バイトをギガバイトに変換 """
     return bytes / 1024**3
 
-def display_gpu(display):
+def display_gpu(display="gpu使用料を表示"):
     print("===============[", display, "]===============")
     # GPUメモリの割り当てられた量をGB単位で取得
     memory_allocated_gb = bytes_to_gb(torch.cuda.memory_allocated())
