@@ -160,7 +160,6 @@ def get_loss(
 
 
     timesteps = get_timesteps(noise_scheduler, batch_size)
-    timesteps = torch.cat((timesteps, timesteps), dim=0)
     # 8. Prepare guidance scale
     guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
     guidance_scale = guidance_scale.to(device, noise.dtype)
@@ -172,6 +171,7 @@ def get_loss(
     latent_model_input = noise_scheduler.add_noise(video_latents, noise, timesteps)
     latent_model_input = torch.cat([video_latents] * 2) if do_classifier_free_guidance else latents
     latent_model_input = torch.cat((latent_model_input, latent_model_input), dim=2)
+    timesteps = torch.cat((timesteps, timesteps), dim=0)
 
     control_model_input = latent_model_input
     controlnet_prompt_embeds = image_embeddings
