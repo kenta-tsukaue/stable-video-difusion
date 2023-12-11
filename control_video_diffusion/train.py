@@ -132,10 +132,10 @@ def main():
     feature_extractor = CLIPImageProcessor.from_pretrained("../weights/stable-video-diffusion-img2vid/feature_extractor")
 
     # to device
-    unet.to(device)
-    vae.to(device)
-    controlnet.to(device)
-    image_encoder.to(device)
+    unet.to(device).to(dtype=torch.float16)
+    vae.to(device).to(dtype=torch.float16)
+    controlnet.to(device).to(dtype=torch.float16)
+    image_encoder.to(device).to(dtype=torch.float16)
 
 
     # to eval mode　
