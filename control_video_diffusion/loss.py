@@ -165,9 +165,9 @@ def get_loss(
 
     # 8. Prepare guidance scale
     guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
-    guidance_scale = guidance_scale.to(device, latents.dtype)
+    guidance_scale = guidance_scale.to(device, noise.dtype)
     guidance_scale = guidance_scale.repeat(batch_size * num_videos_per_prompt, 1)
-    guidance_scale = _append_dims(guidance_scale, latents.ndim)
+    guidance_scale = _append_dims(guidance_scale, noise.ndim)
 
 
     # predict noise
