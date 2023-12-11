@@ -174,6 +174,7 @@ def get_loss(
     print("\nvideo_latents", video_latents.size())
     print("\nnoise", noise.size())
     print("\ntimesteps", timesteps.size())
+    print("\ntimesteps", timesteps)
     latent_model_input = noise_scheduler.add_noise(video_latents, noise, timesteps)
     print("\nlatent_model_input", latent_model_input.size())
     latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
