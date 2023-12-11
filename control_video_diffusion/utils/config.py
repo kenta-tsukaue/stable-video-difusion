@@ -4,8 +4,8 @@ from dataclasses import dataclass
 class TrainingConfig:
     height = 576  # the generated image resolution
     width = 1024
-    train_batch_size = 4
-    eval_batch_size = 4  # how many images to sample during evaluation
+    train_batch_size = 1
+    eval_batch_size = 1  # how many images to sample during evaluation
     data_path = "../dataset/action_youtube_naudio" #train.pyからの位置
     num_epochs = 10
     gradient_accumulation_steps = 1
