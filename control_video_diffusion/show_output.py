@@ -24,6 +24,7 @@ def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
         # decode decode_chunk_size frames at a time to avoid OOM
         frames = []
         for i in range(0, latents.shape[0], decode_chunk_size):
+            print(i)
             num_frames_in = latents[i : i + decode_chunk_size].shape[0]
             decode_kwargs = {}
             if accepts_num_frames:
@@ -32,6 +33,11 @@ def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
 
             frame = vae.decode(latents[i : i + decode_chunk_size], **decode_kwargs).sample
             frames.append(frame)
+            # 不要なテンソルの削除
+            del frame
+            # GPUメモリキャッシュのクリア
+            torch.cuda.empty_cache()
+        
         frames = torch.cat(frames, dim=0)
 
         # [batch*frames, channels, height, width] -> [batch, channels, frames, height, width]
@@ -46,15 +52,15 @@ def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
 file_name = './output_latents.pkl'
 vae = getModel("vae")
 
-vae.to(dtype=torch.float16)
+vae.to(dtype=torch.float16).to(device)
 
 
 # Pickleファイルから読み込み
 with open(file_name, 'rb') as f:
-    latents = pickle.load(f).to("cpu")
+    latents = pickle.load(f).to(device)
 
 
-frames = decode_latents(vae, latents, 14, 14).to("cpu")
+frames = decode_latents(vae, latents, 14, 14)
 
 
 # 画像のリストを取得
