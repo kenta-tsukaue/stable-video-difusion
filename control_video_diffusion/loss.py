@@ -264,28 +264,8 @@ def prepare_image(
 
     return image
 
-"""def encode_vae_video(vae, video: torch.Tensor, device):
-    torch.cuda.empty_cache()
-    print("video.size()",video.size())
-    # 元のビデオの形状を保存
-    batch_size, num_frames, channels, height, width = video.size()
-
-    # ビデオをフレームごとのバッチに変形（バッチサイズ＊フレーム数、チャネル、縦、横）
-    video_flattened = video.view(batch_size * num_frames, channels, height, width)
-
-    # デバイスに送る
-    video_flattened = video_flattened.to(device=device)
-    print("video_flattened.size()",video_flattened.size())
-    # VAEを使用してエンコード
-    video_latents = vae.encode(video_flattened).latent_dist.mode()
-    print("video_latents.size()", video_latents.size())
-
-    # テンソルを元のビデオ形状に戻す（バッチサイズ、フレーム数、チャネル、縦、横）
-    video_latents = video_latents.view(batch_size, num_frames, channels, height, width)
-
-    return video_latents"""
 def encode_vae_video(vae, video: torch.Tensor, device):
-    print("video.size()", video.size())
+    #print("video.size()", video.size())
     # 元のビデオの形状を保存
     batch_size, num_frames, channels, height, width = video.size()
 
@@ -293,12 +273,12 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
     # バッチごとにループ
     for batch_idx in range(batch_size):
-        print(batch_idx)
+        #print(batch_idx)
         batch_latents = []
 
         # 各フレームを個別に処理
         for frame_idx in range(num_frames):
-            print(batch_idx, frame_idx)
+            #print(batch_idx, frame_idx)
             # フレームを取り出す
             frame = video[batch_idx, frame_idx, :, :, :].unsqueeze(0).to(device=device)
             
@@ -316,15 +296,13 @@ def encode_vae_video(vae, video: torch.Tensor, device):
             torch.cuda.empty_cache()
 
             # 各バッチのフレームを結合
-            print("torch.stack(batch_latents, dim=1)", torch.stack(batch_latents, dim=1).size())
+            #print("torch.stack(batch_latents, dim=1)", torch.stack(batch_latents, dim=1).size())
         
         video_latents_list.append(torch.stack(batch_latents, dim=1))
 
     # 全バッチを結合
-    for batch_idx in range(batch_size):
-        print("video_latents_list[i].size()", video_latents_list[batch_idx].size())
+
     video_latents = torch.cat(video_latents_list, dim=0).to(device=device)
-    print("video_latents.size()", video_latents.size())
 
     return video_latents
 
@@ -360,7 +338,6 @@ def get_add_time_ids(
     return add_time_ids
 
 def prepare_latents(
-        self,
         batch_size,
         num_frames,
         num_channels_latents,
@@ -393,6 +370,8 @@ def prepare_latents(
         # scale the initial noise by the standard deviation required by the scheduler
         latents = latents * self.scheduler.init_noise_sigma
         return latents
+
+
 # resizing utils
 # TODO: clean up later
 def _resize_with_antialiasing(input, size, interpolation="bicubic", align_corners=True):
