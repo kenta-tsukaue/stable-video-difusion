@@ -61,10 +61,10 @@ with torch.no_grad():
     tensor_image = tensor_image.unsqueeze(0).to(device)
 
     print(tensor_image.size())
-    output = pipe(tensor_image, tensor_image)
+    output = pipe(tensor_image, tensor_image, output_type = "latent")
 
     # 保存するファイル名
-    file_name = 'output.pkl'
+    file_name = 'output_latents.pkl'
 
     # Pickleファイルとして保存
     with open(file_name, 'wb') as f:
