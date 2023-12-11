@@ -176,7 +176,8 @@ def get_loss(
     print("\nlatent_model_input", latent_model_input.size())
     latent_model_input = torch.cat([video_latents] * 2) if do_classifier_free_guidance else latents
     print("\nlatent_model_input", latent_model_input.size())
-
+    latent_model_input = torch.cat((latent_model_input, latent_model_input), dim=2)
+    print("\nlatent_model_input", latent_model_input.size())
     return 0
 
 """def get_timesteps(noise_scheduler, batch_size):
