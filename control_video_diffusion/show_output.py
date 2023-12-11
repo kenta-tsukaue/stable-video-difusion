@@ -55,12 +55,12 @@ def decode_vae_latent(vae, latents, device):
 
 # 読み込むファイル名
 file_name = './output_latents.pkl'
-vae = getModel("vae").to(device).to(dtype=torch.float16)
+vae = getModel("vae").to(device).to(dtype=torch.float32)
 
 
 # Pickleファイルから読み込み
 with open(file_name, 'rb') as f:
-    latents = pickle.load(f).to(device).to(dtype=torch.float16)
+    latents = pickle.load(f).to(device).to(dtype=torch.float32)
 
 print(latents.size())
 frames = decode_vae_latent(vae, latents, device)
