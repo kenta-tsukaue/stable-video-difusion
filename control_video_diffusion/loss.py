@@ -160,6 +160,7 @@ def get_loss(
         device,
         generator,
         vae_scale_factor,
+        noise_scheduler,
         latents,
     )
     # 8. Prepare guidance scale
@@ -347,6 +348,7 @@ def prepare_latents(
         device,
         generator,
         vae_scale_factor,
+        scheduler,
         latents=None,
     ):
         shape = (
@@ -368,7 +370,7 @@ def prepare_latents(
             latents = latents.to(device)
 
         # scale the initial noise by the standard deviation required by the scheduler
-        latents = latents * self.scheduler.init_noise_sigma
+        latents = latents * scheduler.init_noise_sigma
         return latents
 
 
