@@ -317,7 +317,8 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
             # 各バッチのフレームを結合
             print("torch.stack(batch_latents, dim=1)", torch.stack(batch_latents, dim=1).size())
-            video_latents_list.append(torch.stack(batch_latents, dim=1))
+        
+        video_latents_list.append(torch.stack(batch_latents, dim=1))
 
     # 全バッチを結合
     for batch_idx in range(batch_size):
