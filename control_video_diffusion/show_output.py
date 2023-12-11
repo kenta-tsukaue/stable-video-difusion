@@ -57,7 +57,7 @@ vae.to(dtype=torch.float16)
 
 # Pickleファイルから読み込み
 with open(file_name, 'rb') as f:
-    latents = pickle.load(f).to("cpu")
+    latents = pickle.load(f).to("cpu").to(dtype=torch.float32)
 
 
 frames = decode_latents(vae, latents, 14, 14)
