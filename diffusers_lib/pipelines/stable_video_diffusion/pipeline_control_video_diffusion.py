@@ -594,7 +594,7 @@ class ControlVideoDiffusionPipeline(DiffusionPipeline):
                     control_model_input,
                     t,
                     encoder_hidden_states=controlnet_prompt_embeds,
-                    controlnet_cond=image_c,
+                    controlnet_cond=image,
                     guess_mode=guess_mode,
                     added_time_ids=added_time_ids,
                     return_dict=False,
