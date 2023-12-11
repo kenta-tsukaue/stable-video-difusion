@@ -286,15 +286,19 @@ def prepare_image(
     return video_latents"""
 def encode_vae_video(vae, video: torch.Tensor, device):
     print("video.size()", video.size())
+    # 元のビデオの形状を保存
+    batch_size, num_frames, channels, height, width = video.size()
 
     video_latents_list = []
 
     # バッチごとにループ
-    for batch_idx in range(len(video)):
+    for batch_idx in range(batch_size):
+        print(batch_idx)
         batch_latents = []
 
         # 各フレームを個別に処理
-        for frame_idx in range(len(video[0])):
+        for frame_idx in range(num_frames):
+            print(batch_idx, frame_idx)
             # フレームを取り出す
             frame = video[batch_idx, frame_idx, :, :, :].unsqueeze(0).to(device=device)
             
@@ -313,6 +317,7 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
     # 各バッチのフレームを結合
     video_latents_list.append(torch.stack(batch_latents, dim=1))
+    print(len(video_latents))
 
     # 全バッチを結合
     video_latents = torch.cat(video_latents_list, dim=0).to(device=device)
