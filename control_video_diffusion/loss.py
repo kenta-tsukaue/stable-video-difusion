@@ -47,140 +47,141 @@ def get_loss(
     control_guidance_start: Union[float, List[float]] = 0.0,
     control_guidance_end: Union[float, List[float]] = 1.0,
 ):
-    print(unet.dtype)
-    print(controlnet.dtype)
-    print(vae.dtype)
-    controlnet = controlnet._orig_mod if is_compiled_module(controlnet) else controlnet
+    with torch.no_grad():
+        print(unet.dtype)
+        print(controlnet.dtype)
+        print(vae.dtype)
+        controlnet = controlnet._orig_mod if is_compiled_module(controlnet) else controlnet
 
 
-    # align format for control guidance
-    if not isinstance(control_guidance_start, list) and isinstance(control_guidance_end, list):
-        control_guidance_start = len(control_guidance_end) * [control_guidance_start]
-    elif not isinstance(control_guidance_end, list) and isinstance(control_guidance_start, list):
-        control_guidance_end = len(control_guidance_start) * [control_guidance_end]
-    elif not isinstance(control_guidance_start, list) and not isinstance(control_guidance_end, list):
-        mult = len(controlnet.nets) if isinstance(controlnet, MultiControlNetModel) else 1
-        control_guidance_start, control_guidance_end = (
-            mult * [control_guidance_start],
-            mult * [control_guidance_end],
+        # align format for control guidance
+        if not isinstance(control_guidance_start, list) and isinstance(control_guidance_end, list):
+            control_guidance_start = len(control_guidance_end) * [control_guidance_start]
+        elif not isinstance(control_guidance_end, list) and isinstance(control_guidance_start, list):
+            control_guidance_end = len(control_guidance_start) * [control_guidance_end]
+        elif not isinstance(control_guidance_start, list) and not isinstance(control_guidance_end, list):
+            mult = len(controlnet.nets) if isinstance(controlnet, MultiControlNetModel) else 1
+            control_guidance_start, control_guidance_end = (
+                mult * [control_guidance_start],
+                mult * [control_guidance_end],
+            )
+        # 0. Default height and width to unet
+        vae_scale_factor = 2 ** (len(vae.config.block_out_channels) - 1)
+        height = height or unet.config.sample_size * vae_scale_factor
+        width = width or unet.config.sample_size * vae_scale_factor
+
+        num_frames = num_frames if num_frames is not None else unet.config.num_frames
+        decode_chunk_size = decode_chunk_size if decode_chunk_size is not None else num_frames
+
+        # 1. Set processors
+        image_processor = VaeImageProcessor(vae_scale_factor=vae_scale_factor)
+        control_image_processor = VaeImageProcessor(
+            vae_scale_factor=vae_scale_factor, do_normalize=False
         )
-    # 0. Default height and width to unet
-    vae_scale_factor = 2 ** (len(vae.config.block_out_channels) - 1)
-    height = height or unet.config.sample_size * vae_scale_factor
-    width = width or unet.config.sample_size * vae_scale_factor
 
-    num_frames = num_frames if num_frames is not None else unet.config.num_frames
-    decode_chunk_size = decode_chunk_size if decode_chunk_size is not None else num_frames
+        # 2. Define call parameters
+        if isinstance(image, PIL.Image.Image):
+            batch_size = 1
+        elif isinstance(image, list):
+            batch_size = len(image)
+        else:
+            batch_size = image.shape[0]
 
-    # 1. Set processors
-    image_processor = VaeImageProcessor(vae_scale_factor=vae_scale_factor)
-    control_image_processor = VaeImageProcessor(
-        vae_scale_factor=vae_scale_factor, do_normalize=False
-    )
+        guess_mode = guess_mode
+        do_classifier_free_guidance = max_guidance_scale > 1.0
 
-    # 2. Define call parameters
-    if isinstance(image, PIL.Image.Image):
-        batch_size = 1
-    elif isinstance(image, list):
-        batch_size = len(image)
-    else:
-        batch_size = image.shape[0]
+        # 3-1. Encode input image
+        image_embeddings = encode_image(image, device, num_videos_per_prompt, do_classifier_free_guidance, image_encoder, feature_extractor, image_processor)
 
-    guess_mode = guess_mode
-    do_classifier_free_guidance = max_guidance_scale > 1.0
+        fps = fps - 1
 
-    # 3-1. Encode input image
-    image_embeddings = encode_image(image, device, num_videos_per_prompt, do_classifier_free_guidance, image_encoder, feature_extractor, image_processor)
+        image_c = prepare_image(
+                image=image_c,
+                width=width,
+                height=height,
+                batch_size=batch_size * num_images_per_prompt,
+                num_images_per_prompt=num_images_per_prompt,
+                device=device,
+                dtype=controlnet.dtype,
+                control_image_processor=control_image_processor,
+                do_classifier_free_guidance=do_classifier_free_guidance,
+                guess_mode=guess_mode,
+            )
+        print("\nimage_c.size()",image_c.size())
+        height, width = image_c.shape[-2:]
 
-    fps = fps - 1
+        # 4. Encode input video using VAE
 
-    image_c = prepare_image(
-            image=image_c,
-            width=width,
-            height=height,
-            batch_size=batch_size * num_images_per_prompt,
-            num_images_per_prompt=num_images_per_prompt,
-            device=device,
-            dtype=controlnet.dtype,
-            control_image_processor=control_image_processor,
-            do_classifier_free_guidance=do_classifier_free_guidance,
-            guess_mode=guess_mode,
+        needs_upcasting = vae.dtype == torch.float16 and vae.config.force_upcast
+        if needs_upcasting:
+            vae.to(dtype=torch.float32)
+
+        video_latents = encode_vae_video(vae, video, device)
+        video_latents = video_latents.to(image_embeddings.dtype)
+
+
+        print("\nvideo_latents.size()", video_latents.size())
+        display_gpu("video_latents取得後")
+
+        """
+        # cast back to fp16 if needed
+        if needs_upcasting:
+            vae.to(dtype=torch.float16)
+
+        # Repeat the image latents for each frame so we can concatenate them with the noise
+        # image_latents [batch, channels, height, width] ->[batch, num_frames, channels, height, width]
+        image_latents = image_latents.unsqueeze(1).repeat(1, num_frames, 1, 1, 1)
+        """
+
+        # 5. Get Added Time IDs
+        added_time_ids = get_add_time_ids(
+            unet,
+            fps,
+            motion_bucket_id,
+            noise_aug_strength,
+            image_embeddings.dtype,
+            batch_size,
+            num_videos_per_prompt,
+            do_classifier_free_guidance,
         )
-    print("\nimage_c.size()",image_c.size())
-    height, width = image_c.shape[-2:]
+        added_time_ids = added_time_ids.to(device)
 
-    # 4. Encode input video using VAE
+        # 6. Prepare timesteps
+        noise_scheduler.set_timesteps(num_inference_steps, device=device)
+        timesteps = noise_scheduler.timesteps
 
-    needs_upcasting = vae.dtype == torch.float16 and vae.config.force_upcast
-    if needs_upcasting:
-        vae.to(dtype=torch.float32)
-
-    video_latents = encode_vae_video(vae, video, device)
-    video_latents = video_latents.to(image_embeddings.dtype)
-
-
-    print("\nvideo_latents.size()", video_latents.size())
-    display_gpu("video_latents取得後")
-
-    """
-    # cast back to fp16 if needed
-    if needs_upcasting:
-        vae.to(dtype=torch.float16)
-
-    # Repeat the image latents for each frame so we can concatenate them with the noise
-    # image_latents [batch, channels, height, width] ->[batch, num_frames, channels, height, width]
-    image_latents = image_latents.unsqueeze(1).repeat(1, num_frames, 1, 1, 1)
-    """
-
-    # 5. Get Added Time IDs
-    added_time_ids = get_add_time_ids(
-        unet,
-        fps,
-        motion_bucket_id,
-        noise_aug_strength,
-        image_embeddings.dtype,
-        batch_size,
-        num_videos_per_prompt,
-        do_classifier_free_guidance,
-    )
-    added_time_ids = added_time_ids.to(device)
-
-    # 6. Prepare timesteps
-    noise_scheduler.set_timesteps(num_inference_steps, device=device)
-    timesteps = noise_scheduler.timesteps
-
-    # 7. Prepare noise variables and timestep
-    num_channels_latents = unet.config.in_channels
-    noise = prepare_noise(
-        batch_size * num_videos_per_prompt,
-        num_frames,
-        num_channels_latents,
-        height,
-        width,
-        image_embeddings.dtype,
-        device,
-        vae_scale_factor,
-    )
+        # 7. Prepare noise variables and timestep
+        num_channels_latents = unet.config.in_channels
+        noise = prepare_noise(
+            batch_size * num_videos_per_prompt,
+            num_frames,
+            num_channels_latents,
+            height,
+            width,
+            image_embeddings.dtype,
+            device,
+            vae_scale_factor,
+        )
 
 
-    timesteps = get_timesteps(noise_scheduler, batch_size)
-    # 8. Prepare guidance scale
-    guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
-    guidance_scale = guidance_scale.to(device, noise.dtype)
-    guidance_scale = guidance_scale.repeat(batch_size * num_videos_per_prompt, 1)
-    guidance_scale = _append_dims(guidance_scale, noise.ndim)
+        timesteps = get_timesteps(noise_scheduler, batch_size)
+        # 8. Prepare guidance scale
+        guidance_scale = torch.linspace(min_guidance_scale, max_guidance_scale, num_frames).unsqueeze(0)
+        guidance_scale = guidance_scale.to(device, noise.dtype)
+        guidance_scale = guidance_scale.repeat(batch_size * num_videos_per_prompt, 1)
+        guidance_scale = _append_dims(guidance_scale, noise.ndim)
 
 
-    # 9. predict noise
-    latent_model_input = noise_scheduler.add_noise(video_latents, noise, timesteps)
-    latent_model_input = torch.cat([video_latents] * 2) if do_classifier_free_guidance else latents
-    latent_model_input = torch.cat((latent_model_input, latent_model_input), dim=2)
-    timesteps = torch.cat((timesteps, timesteps), dim=0)
+        # 9. predict noise
+        latent_model_input = noise_scheduler.add_noise(video_latents, noise, timesteps)
+        latent_model_input = torch.cat([video_latents] * 2) if do_classifier_free_guidance else latents
+        latent_model_input = torch.cat((latent_model_input, latent_model_input), dim=2)
+        timesteps = torch.cat((timesteps, timesteps), dim=0)
 
-    control_model_input = latent_model_input
-    controlnet_prompt_embeds = image_embeddings
+        control_model_input = latent_model_input
+        controlnet_prompt_embeds = image_embeddings
 
-    display_gpu("controlnetへの代入前")
+        display_gpu("controlnetへの代入前")
 
     down_block_res_samples, mid_block_res_sample = controlnet(
         control_model_input,
@@ -191,15 +192,17 @@ def get_loss(
         added_time_ids=added_time_ids,
         return_dict=False,
     )
-    noise_pred = unet(
-        latent_model_input,
-        timesteps,
-        encoder_hidden_states=image_embeddings,
-        down_block_additional_residuals=down_block_res_samples,
-        mid_block_additional_residual=mid_block_res_sample,
-        added_time_ids=added_time_ids,
-        return_dict=False,
-    )[0]
+    with torch.no_grad():
+        noise_pred = unet(
+            latent_model_input,
+            timesteps,
+            encoder_hidden_states=image_embeddings,
+            down_block_additional_residuals=down_block_res_samples,
+            mid_block_additional_residual=mid_block_res_sample,
+            added_time_ids=added_time_ids,
+            return_dict=False,
+        )[0]
+        
     loss = F.mse_loss(noise_pred, noise)
     
     return loss
