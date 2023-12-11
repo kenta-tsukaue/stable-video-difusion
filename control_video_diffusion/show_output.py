@@ -52,12 +52,12 @@ def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
 file_name = './output_latents.pkl'
 vae = getModel("vae")
 
-vae.to(dtype=torch.float16).to(device)
+vae.to(dtype=torch.float16)
 
 
 # Pickleファイルから読み込み
 with open(file_name, 'rb') as f:
-    latents = pickle.load(f).to(device)
+    latents = pickle.load(f).to("cpu")
 
 
 frames = decode_latents(vae, latents, 14, 14)
