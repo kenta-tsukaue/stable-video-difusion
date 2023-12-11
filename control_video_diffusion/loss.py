@@ -47,6 +47,9 @@ def get_loss(
     control_guidance_start: Union[float, List[float]] = 0.0,
     control_guidance_end: Union[float, List[float]] = 1.0,
 ):
+    print(unet.dtype)
+    print(controlnet.dtype)
+    print(vae.dtype)
     controlnet = controlnet._orig_mod if is_compiled_module(controlnet) else controlnet
 
 
