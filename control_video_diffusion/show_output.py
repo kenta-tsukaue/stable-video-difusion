@@ -52,7 +52,6 @@ def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
 file_name = './output_latents.pkl'
 vae = getModel("vae")
 
-vae.to(dtype=torch.float16)
 
 
 # Pickleファイルから読み込み
