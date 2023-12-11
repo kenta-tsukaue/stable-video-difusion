@@ -34,9 +34,6 @@ def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
             frame = vae.decode(latents[i : i + decode_chunk_size], **decode_kwargs).sample
             frames.append(frame)
             # 不要なテンソルの削除
-            del frame
-            # GPUメモリキャッシュのクリア
-            torch.cuda.empty_cache()
         
         frames = torch.cat(frames, dim=0)
 
