@@ -312,7 +312,7 @@ def encode_vae_video(vae, video: torch.Tensor, device):
 
     # 処理結果を結合
     video_latents = torch.stack(video_latents_list, dim=1).to(device=device)
-
+    print("video_latents.size()", video_latents.size())
     # 結果を元のビデオ形状に戻す
     video_latents = video_latents.view(batch_size, num_frames, channels, height, width)
 
