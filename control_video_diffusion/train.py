@@ -16,6 +16,7 @@ from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from loss import get_loss
 from utils.dataset import CustomVideoDataset
 from utils.config import TrainingConfig
+from utils.check_gpu import display_gpu
 from get_model import getModel
 current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
@@ -51,6 +52,7 @@ def train_loop(
         progress_bar.set_description(f"Epoch {epoch}")
 
         for step, (video, first_frame, last_frame, label) in enumerate(train_dataloader):
+            display_gpu()
             # get loss
             loss = get_loss(
                 video,
@@ -133,13 +135,13 @@ def main():
 
     # to device
     unet.to(device).to(dtype=torch.float16)
+    display_gpu()
     vae.to(device).to(dtype=torch.float16)
+    display_gpu()
     controlnet.to(device).to(dtype=torch.float16)
+    display_gpu()
     image_encoder.to(device).to(dtype=torch.float16)
-
-    # 新たに割り当てられたメモリ量を確認
-    memory_allocated = torch.cuda.memory_allocated()
-    print(f"Memory allocated: {memory_allocated} bytes")
+    display_gpu()
 
 
     # to eval mode　
@@ -154,6 +156,7 @@ def main():
         num_warmup_steps=config.lr_warmup_steps,
         num_training_steps=(len(train_dataloader) * config.num_epochs),
     )
+    display_gpu()
 
     train_loop(config, unet, controlnet, vae, image_encoder, feature_extractor, noise_scheduler, optimizer, train_dataloader, lr_scheduler, device)
 

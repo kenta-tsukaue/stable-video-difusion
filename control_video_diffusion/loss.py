@@ -17,7 +17,7 @@ from diffusers_lib.schedulers import EulerDiscreteScheduler #丁寧に型定義�
 from diffusers_lib.utils.torch_utils import randn_tensor, is_compiled_module
 from diffusers_lib.pipelines.stable_video_diffusion.pipeline_control_video_diffusion import ControlVideoDiffusionPipeline
 from diffusers_lib.pipelines.controlnet.multicontrolnet import MultiControlNetModel
-
+from utils.check_gpu import display_gpu
 """
 ================================================
                 lossを出す関数
@@ -120,6 +120,7 @@ def get_loss(
 
 
     print("\nvideo_latents.size()", video_latents.size())
+    display_gpu()
 
     """
     # cast back to fp16 if needed
@@ -179,6 +180,8 @@ def get_loss(
     control_model_input = latent_model_input
     controlnet_prompt_embeds = image_embeddings
 
+    display_gpu()
+    
     down_block_res_samples, mid_block_res_sample = controlnet(
         control_model_input,
         timesteps,
