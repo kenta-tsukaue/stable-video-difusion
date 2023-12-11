@@ -135,13 +135,13 @@ def main():
 
     # to device
     unet.to(device).to(dtype=torch.float16)
-    display_gpu()
+    display_gpu("unet")
     vae.to(device).to(dtype=torch.float16)
-    display_gpu()
+    display_gpu("vae")
     controlnet.to(device).to(dtype=torch.float16)
-    display_gpu()
+    display_gpu("controlnet")
     image_encoder.to(device).to(dtype=torch.float16)
-    display_gpu()
+    display_gpu("image_encoder")
 
 
     # to eval mode　
@@ -156,7 +156,6 @@ def main():
         num_warmup_steps=config.lr_warmup_steps,
         num_training_steps=(len(train_dataloader) * config.num_epochs),
     )
-    display_gpu()
 
     train_loop(config, unet, controlnet, vae, image_encoder, feature_extractor, noise_scheduler, optimizer, train_dataloader, lr_scheduler, device)
 
