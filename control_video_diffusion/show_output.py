@@ -10,6 +10,7 @@ import diffusers_lib
 from get_model import getModel
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 
 
 def decode_latents(vae, latents, num_frames, decode_chunk_size=14):
