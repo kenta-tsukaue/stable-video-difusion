@@ -6,6 +6,7 @@ from get_model import getModel
 from diffusers import EulerDiscreteScheduler
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from PIL import Image
+import torch
 from torchvision import transforms
 from tqdm.auto import tqdm
 
