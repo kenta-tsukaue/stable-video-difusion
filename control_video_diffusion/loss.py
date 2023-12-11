@@ -181,7 +181,11 @@ def get_loss(
         control_model_input = latent_model_input
         controlnet_prompt_embeds = image_embeddings
 
-        display_gpu("controlnetへの代入前")
+    display_gpu("controlnetへの代入前")
+    torch.cuda.empty_cache()
+    display_gpu(".empty_cache()後")
+    del unet
+    display_gpu("del unet後")
 
     down_block_res_samples, mid_block_res_sample = controlnet(
         control_model_input,
@@ -192,6 +196,7 @@ def get_loss(
         added_time_ids=added_time_ids,
         return_dict=False,
     )
+
     with torch.no_grad():
         noise_pred = unet(
             latent_model_input,
@@ -206,6 +211,7 @@ def get_loss(
     loss = F.mse_loss(noise_pred, noise)
     
     return loss
+
 
 """def get_timesteps(noise_scheduler, batch_size):
     # 初期値
