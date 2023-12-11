@@ -16,6 +16,8 @@ sys.path.append(parent_directory)
 from  diffusers_lib.pipelines.stable_video_diffusion.pipeline_control_video_diffusion import ControlVideoDiffusionPipeline
 from  diffusers_lib.models.controlnet_spatio_temporal_condition import ControlNetSpatioTemporalConditionModel
 
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
 
 #========[import models]========
 unet = getModel("unet")
@@ -32,6 +34,10 @@ pipe = ControlVideoDiffusionPipeline(
     scheduler,
     feature_extractor
 )
+unet.to(device)
+vae.to(device)
+controlnet.to(device)
+image_encoder.to(device)
 
 #========[predict]========
 pipe.enable_attention_slicing()
@@ -51,7 +57,7 @@ transform = transforms.Compose([
 tensor_image = transform(image)
 
 # バッチ次元を追加
-tensor_image = tensor_image.unsqueeze(0)
+tensor_image = tensor_image.unsqueeze(0).to(device)
 
 print(tensor_image.size())
 output = pipe(tensor_image, tensor_image)
