@@ -63,7 +63,7 @@ def decode_vae_latent(vae, latents, device):
             frame_latent = latents[batch_idx, frame_idx, :, :, :].unsqueeze(0).to(device=device)
             
             # VAEを使用してエンコード
-            frame = vae.decode(frame_latent).sample
+            frame = vae.decode(frame_latent, 14).sample
 
             # 処理結果をリストに追加
             batch_latents.append(frame.cpu())
