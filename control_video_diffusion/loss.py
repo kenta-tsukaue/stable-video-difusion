@@ -182,10 +182,7 @@ def get_loss(
         controlnet_prompt_embeds = image_embeddings
 
     display_gpu("controlnetへの代入前")
-    torch.cuda.empty_cache()
-    display_gpu(".empty_cache()後")
-    del unet
-    display_gpu("del unet後")
+
 
     down_block_res_samples, mid_block_res_sample = controlnet(
         control_model_input,

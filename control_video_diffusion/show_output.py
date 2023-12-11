@@ -9,8 +9,8 @@ sys.path.append(parent_directory)
 import diffusers_lib
 from get_model import getModel
 
-#device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-device = 'cpu'
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+#device = 'cpu'
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
 
 
@@ -82,34 +82,37 @@ def decode_vae_latent(vae, latents, device):
 
     return video
 
-# 読み込むファイル名
-file_name = './output_latents.pkl'
-vae = getModel("vae").to(device).to(dtype=torch.float32)
+
+with torch.no_grad():
+    # 読み込むファイル名
+    file_name = './output_latents.pkl'
+    vae = getModel("vae").to(device).to(dtype=torch.float32)
+    vae.eval()
 
 
-# Pickleファイルから読み込み
-with open(file_name, 'rb') as f:
-    latents = pickle.load(f).to(device).to(dtype=torch.float32)
+    # Pickleファイルから読み込み
+    with open(file_name, 'rb') as f:
+        latents = pickle.load(f).to(device).to(dtype=torch.float32)
 
-print(latents.size())
-frames = decode_latents(vae, latents, 14, 14)
+    print(latents.size())
+    frames = decode_latents(vae, latents, 14, 14)
 
 
-# 画像のリストを取得
-images = frames.frames[0]
+    # 画像のリストを取得
+    images = frames.frames[0]
 
-# GIFとして保存するファイル名
-gif_filename = 'output.gif'
+    # GIFとして保存するファイル名
+    gif_filename = 'output.gif'
 
-# GIFを作成
-images[0].save(
-    gif_filename,
-    save_all=True,
-    append_images=images[1:],
-    duration=100,  # 各フレームの表示時間（ミリ秒）
-    loop=0  # ループ回数（0は無限ループ）
-)
+    # GIFを作成
+    images[0].save(
+        gif_filename,
+        save_all=True,
+        append_images=images[1:],
+        duration=100,  # 各フレームの表示時間（ミリ秒）
+        loop=0  # ループ回数（0は無限ループ）
+    )
 
-print(f"GIF saved as {gif_filename}")
+    print(f"GIF saved as {gif_filename}")
 
 
