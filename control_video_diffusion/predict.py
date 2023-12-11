@@ -34,10 +34,10 @@ pipe = ControlVideoDiffusionPipeline(
     scheduler,
     feature_extractor
 )
-unet.to(device)
-vae.to(device)
-controlnet.to(device)
-image_encoder.to(device)
+unet.to(device).to(dtype=torch.float16)
+vae.to(device).to(dtype=torch.float16)
+controlnet.to(device).to(dtype=torch.float16)
+image_encoder.to(device).to(dtype=torch.float16)
 
 #========[predict]========
 pipe.enable_attention_slicing()
