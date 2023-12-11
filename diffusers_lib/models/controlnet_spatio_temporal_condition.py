@@ -501,8 +501,10 @@ class ControlNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DCond
 
         # 2. pre-process
         sample = self.conv_in(sample)
-        #print("sample_preplus_cond", sample.size())
+        print("\nsample_preplus_cond", sample.size())
+        print("\ncontrolnet_condsize()", controlnet_cond.size())
         controlnet_cond = self.controlnet_cond_embedding(controlnet_cond)
+        print("\ncontrolnet_cond.size()", controlnet_cond.size())
         sample = sample + controlnet_cond
 
         image_only_indicator = torch.zeros(batch_size, num_frames, dtype=sample.dtype, device=sample.device)
